@@ -1,9 +1,12 @@
 import { Link } from 'react-router-dom';
-import { LogoIcon, ChatIcon, BellIcon, UserIcon } from '../icons';
 import { Button, Badge } from '../common';
 import { SearchBar } from './SearchBar';
 import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
+import logo from '@/assets/icon_logo.svg';
+import iconPen from '@/assets/icon_pen.svg';
+import iconChat from '@/assets/icon_chat.svg';
+import iconPerson from '@/assets/icon_person.svg';
 
 export const Header = () => {
   const { isLoggedIn, user } = useAuthStore();
@@ -18,8 +21,8 @@ export const Header = () => {
         <div className="flex items-center justify-between h-header">
           {/* 로고 */}
           <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-            <LogoIcon size={36} />
-            <span className="text-xl font-bold text-primary">SSAFY Market</span>
+            <img src={logo} alt="싸피마켓" className="h-8" />
+            <span className="text-xl font-bold text-gray-900">싸피마켓</span>
           </Link>
 
           {/* 검색바 */}
@@ -33,24 +36,25 @@ export const Header = () => {
               <>
                 {/* 글쓰기 버튼 */}
                 <Link to="/products/new">
-                  <Button variant="primary" size="md">
+                  <Button variant="primary" size="md" className="flex items-center gap-2">
+                    <img src={iconPen} alt="" className="w-5 h-5" />
                     글쓰기
                   </Button>
                 </Link>
 
                 {/* 채팅 버튼 */}
                 <Link to="/chat">
-                  <Button variant="secondary" size="md" className="relative">
-                    채팅
+                  <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                    <img src={iconChat} alt="채팅" className="w-6 h-6" />
                     {totalUnreadCount > 0 && <Badge count={totalUnreadCount} />}
-                  </Button>
+                  </button>
                 </Link>
 
                 {/* 마이페이지 버튼 */}
                 <Link to="/mypage">
-                  <Button variant="secondary" size="md">
-                    마이페이지
-                  </Button>
+                  <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                    <img src={iconPerson} alt="마이페이지" className="w-6 h-6" />
+                  </button>
                 </Link>
 
                 {/* 설정 버튼 (관리자 페이지) - 나중에 user.role === 'ADMIN' 조건 추가 */}

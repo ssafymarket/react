@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
 import type { Product } from '@/types/product';
+import iconChat from '@/assets/icon_chat.svg';
+import iconHeart from '@/assets/icon_heart.svg';
 
 interface ProductCardProps {
   product: Product;
@@ -7,27 +9,25 @@ interface ProductCardProps {
 
 export const ProductCard = ({ product }: ProductCardProps) => {
   const statusText = {
-    SELLING: '판매중',
-    RESERVED: '예약중',
-    SOLD: '판매완료',
+    '판매중': '판매중',
+    '판매완료': '판매완료',
   };
 
   const statusColor = {
-    SELLING: 'text-primary',
-    RESERVED: 'text-orange-500',
-    SOLD: 'text-gray-500',
+    '판매중': 'text-primary',
+    '판매완료': 'text-gray-500',
   };
 
   return (
     <Link
-      to={`/products/${product.id}`}
+      to={`/products/${product.postId}`}
       className="group block bg-white rounded-lg overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow duration-200"
     >
       {/* 이미지 */}
       <div className="aspect-square bg-gray-100 overflow-hidden">
-        {product.images && product.images.length > 0 ? (
+        {product.imageUrl ? (
           <img
-            src={product.images[0]}
+            src={product.imageUrl}
             alt={product.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
           />
@@ -55,10 +55,18 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           <span className={`font-medium ${statusColor[product.status]}`}>
             {statusText[product.status]}
           </span>
-          <div className="flex items-center gap-2">
-            <span>조회 {product.viewCount}</span>
+          <div className="flex items-center gap-3">
+            {/* 채팅수 */}
+            <div className="flex items-center gap-1">
+              <img src={iconChat} alt="" className="w-4 h-4" />
+              <span>{product.chatRoomCount}</span>
+            </div>
+            {/* 좋아요 수 */}
             {product.likeCount > 0 && (
-              <span>♥ {product.likeCount}</span>
+              <div className="flex items-center gap-1">
+                <img src={iconHeart} alt="" className="w-4 h-4" />
+                <span>{product.likeCount}</span>
+              </div>
             )}
           </div>
         </div>

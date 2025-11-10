@@ -1,16 +1,12 @@
 export type User = {
-  id: number;
-  email: string;
-  name: string;
-  nickname?: string;
-  profileImage?: string;
-  role: 'USER' | 'ADMIN';
-  createdAt: string;
-  updatedAt: string;
+  studentId: string;  // 학번 (PK)
+  name: string;       // 이름
+  class: string;      // 반 (13기/14기)
+  role: 'ROLE_USER' | 'ROLE_ADMIN';  // 권한
 }
 
 export type LoginRequest = {
-  email: string;
+  studentId: string;  // 학번으로 로그인
   password: string;
 }
 
@@ -20,8 +16,8 @@ export type LoginResponse = {
 }
 
 export type SignupRequest = {
-  email: string;
-  password: string;
+  studentId: string;
   name: string;
-  nickname?: string;
+  class: string;
+  password: string;
 }

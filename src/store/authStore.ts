@@ -14,7 +14,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      user: { id: 1, email: 'admin@ssafy.com', name: '관리자', role: 'ADMIN', createdAt: '', updatedAt: '' },
+      user: { studentId: '0100001', name: '관리자', class: '13기', role: 'ROLE_ADMIN' },
       token: 'test-token',
       isLoggedIn: true,
 
