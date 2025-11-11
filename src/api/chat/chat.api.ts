@@ -93,6 +93,8 @@ export const convertToChatMessage = (response: ChatMessageResponse): ChatMessage
     content: response.content,
     sentAt: response.sentAt,
     isRead: response.isRead,
+    messageType: response.messageType,
+    readAt: response.readAt,
   };
 };
 
@@ -128,17 +130,24 @@ export const getMessages = async (
   page: number = 0,
   size: number = 50
 ): Promise<ChatMessage[]> => {
-  const response = await client.get<{
-    content: ChatMessageResponse[];
-    totalElements: number;
-    totalPages: number;
-    number: number;
-    size: number;
-  }>(`/chat/room/${roomId}/messages`, {
+  const response = await client.get(`/chat/room/${roomId}/messages`, {
     params: { page, size },
   });
-  
-  return response.data.content.map(convertToChatMessage);
+
+  console.log('getMessages 응답:', response.data);
+
+  // 응답이 배열인 경우 직접 처리
+  if (Array.isArray(response.data)) {
+    return response.data.map(convertToChatMessage);
+  }
+
+  // 응답이 페이지네이션 객체인 경우
+  if (response.data.content && Array.isArray(response.data.content)) {
+    return response.data.content.map(convertToChatMessage);
+  }
+
+  console.error('예상하지 못한 응답 형식:', response.data);
+  return [];
 };
 
 /**

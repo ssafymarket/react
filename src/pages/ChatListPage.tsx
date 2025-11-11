@@ -1,12 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/layout/Layout';
 import { UserProfile } from '@/components/common/UserProfile';
 import { useAuthStore } from '@/store/authStore';
 import websocketService from '@/services/websocket.service';
 import { getChatRooms, getMessages, markAsRead } from '@/api/chat/chat.api';
 import type { ChatRoom, ChatMessage } from '@/types/chat';
+import type { StompSubscription } from '@stomp/stompjs';
 import iconSearch from '@/assets/icon_search.svg';
 import iconPicture from '@/assets/icon_picture.svg';
 
@@ -21,6 +22,8 @@ export const ChatListPage = () => {
   const [messageInput, setMessageInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connected, setConnected] = useState(false);
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [messageError, setMessageError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // 로그인 체크
@@ -77,21 +80,39 @@ export const ChatListPage = () => {
     if (!selectedRoom) return;
 
     const loadMessages = async () => {
+      setIsLoadingMessages(true);
+      setMessageError(null);
       try {
         const msgs = await getMessages(selectedRoom.roomId);
-        setMessages(msgs.reverse()); // 최신순으로 정렬
+        // sentAt 기준 오름차순 정렬 (오래된 메시지 → 최신 메시지)
+        const sorted = msgs.sort((a, b) =>
+          new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
+        );
+        setMessages(sorted);
       } catch (error) {
         console.error('메시지 로드 실패:', error);
+        setMessageError('메시지를 불러오는데 실패했습니다.');
+      } finally {
+        setIsLoadingMessages(false);
       }
     };
 
     loadMessages();
 
+    // WebSocket 구독을 위한 변수
+    let subscription: StompSubscription | null = null;
+
     // WebSocket 구독
     if (connected) {
-      const subscription = websocketService.subscribeToRoom(selectedRoom.roomId, (newMessage: ChatMessage) => {
+      subscription = websocketService.subscribeToRoom(selectedRoom.roomId, (newMessage: ChatMessage) => {
         console.log('새 메시지 수신:', newMessage);
-        setMessages((prev) => [...prev, newMessage]);
+        // 중복 메시지 방지
+        setMessages((prev) => {
+          if (prev.some(msg => msg.messageId === newMessage.messageId)) {
+            return prev;
+          }
+          return [...prev, newMessage];
+        });
 
         // 채팅방 목록 갱신
         queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
@@ -102,13 +123,14 @@ export const ChatListPage = () => {
 
       // 읽음 처리
       markAsRead(selectedRoom.roomId).catch(console.error);
-
-      return () => {
-        if (subscription) {
-          websocketService.unsubscribeFromRoom(selectedRoom.roomId);
-        }
-      };
     }
+
+    // cleanup 함수 항상 반환
+    return () => {
+      if (subscription) {
+        websocketService.unsubscribeFromRoom(selectedRoom.roomId);
+      }
+    };
   }, [selectedRoom, connected, queryClient]);
 
   // 메시지 스크롤
@@ -136,7 +158,7 @@ export const ChatListPage = () => {
   // 채팅방 선택
   const handleSelectRoom = (room: ChatRoom) => {
     setSelectedRoom(room);
-    setMessages([]);
+    // 메시지는 useEffect에서 자동으로 로드되므로 초기화하지 않음
   };
 
   // 검색 필터
@@ -163,11 +185,16 @@ export const ChatListPage = () => {
     if (minutes < 60) return `${minutes}분 전`;
     if (hours < 24) return `${hours}시간 전`;
     if (days < 7) return `${days}일 전`;
-    return date.toLocaleDateString();
+    return date.toLocaleDateString('ko-KR');
   };
 
   const formatMessageTime = (dateString: string) => {
-    const date = new Date(dateString);
+    // 서버에서 시간대 정보 없이 UTC 시간을 보냄
+    // 2025-11-11T17:06:03 형식은 'Z'가 없으면 로컬 시간으로 해석됨
+    // 따라서 명시적으로 'Z'를 붙여 UTC로 파싱한 후 한국 시간으로 변환
+    const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+    const date = new Date(utcString);
+
     const hours = date.getHours();
     const minutes = date.getMinutes();
     const ampm = hours >= 12 ? '오후' : '오전';
@@ -275,47 +302,64 @@ export const ChatListPage = () => {
                 </header>
 
                 {/* 메시지 영역 */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                  {messages.length === 0 ? (
+                <div className="flex-1 overflow-y-auto p-6 space-y-4" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                  {isLoadingMessages ? (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      메시지를 불러오는 중...
+                    </div>
+                  ) : messageError ? (
+                    <div className="flex flex-col items-center justify-center h-full text-red-500">
+                      <p>{messageError}</p>
+                      <button
+                        onClick={() => window.location.reload()}
+                        className="mt-4 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-600"
+                      >
+                        새로고침
+                      </button>
+                    </div>
+                  ) : messages.length === 0 ? (
                     <div className="flex items-center justify-center h-full text-gray-500">
                       메시지가 없습니다. 첫 메시지를 보내보세요!
                     </div>
                   ) : (
-                    messages.map((message) => {
-                      const isMe = message.senderId === user?.studentId;
-                      const otherUser = selectedRoom.iAmBuyer ? selectedRoom.seller : selectedRoom.buyer;
+                    messages
+                      .filter((message) => !message.messageType || message.messageType === 'CHAT')
+                      .map((message) => {
+                        console.log(message.messageType);
+                        const isMe = message.senderId === user?.studentId;
+                        const otherUser = selectedRoom.iAmBuyer ? selectedRoom.seller : selectedRoom.buyer;
 
-                      return (
-                        <div
-                          key={message.messageId}
-                          className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
-                        >
-                          <div className={`flex items-start gap-2 max-w-[70%] ${isMe ? 'flex-row-reverse' : ''}`}>
-                            {!isMe && (
-                              <UserProfile
-                                user={otherUser}
-                                size="sm"
-                                showInfo={false}
-                              />
-                            )}
-                            <div>
-                              <div
-                                className={`px-4 py-2 rounded-2xl ${
-                                  isMe
-                                    ? 'bg-primary text-white rounded-tr-none'
-                                    : 'bg-gray-100 text-gray-900 rounded-tl-none'
-                                }`}
-                              >
-                                <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                        return (
+                          <div
+                            key={message.messageId}
+                            className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                          >
+                            <div className={`flex items-start gap-2 max-w-[70%] ${isMe ? 'flex-row-reverse' : ''}`}>
+                              {!isMe && (
+                                <UserProfile
+                                  user={otherUser}
+                                  size="sm"
+                                  showInfo={false}
+                                />
+                              )}
+                              <div>
+                                <div
+                                  className={`px-4 py-2 rounded-2xl ${
+                                    isMe
+                                      ? 'bg-primary text-white rounded-tr-none'
+                                      : 'bg-gray-100 text-gray-900 rounded-tl-none'
+                                  }`}
+                                >
+                                  <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                                </div>
+                                <p className={`text-xs text-gray-500 mt-1 ${isMe ? 'text-right' : ''}`}>
+                                  {formatMessageTime(message.sentAt)}
+                                </p>
                               </div>
-                              <p className={`text-xs text-gray-500 mt-1 ${isMe ? 'text-right' : ''}`}>
-                                {formatMessageTime(message.sentAt)}
-                              </p>
                             </div>
                           </div>
-                        </div>
-                      );
-                    })
+                        );
+                      })
                   )}
                   <div ref={messagesEndRef} />
                 </div>
