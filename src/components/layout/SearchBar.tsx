@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { SearchIcon } from '../icons';
 
 interface SearchBarProps {
   onSearch?: (query: string) => void;
@@ -20,7 +19,6 @@ export const SearchBar = ({
   return (
     <form onSubmit={handleSubmit} className="w-full max-w-2xl">
       <div className="relative">
-        <SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
         <input
           type="text"
           value={query}
