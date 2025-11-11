@@ -1,59 +1,121 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
-import { UserProfile } from '@/components/common/UserProfile';
-import { Button } from '@/components/common/Button';
-import { Badge } from '@/components/common/Badge';
 import { useAuthStore } from '@/store/authStore';
-import type { Product } from '@/types/product';
+import type { ProductDetail } from '@/types/product';
+import { getPostById, deletePost, addLike, removeLike, checkLikeStatus } from '@/api/post';
+import { createChatRoom } from '@/api/chat';
 import iconHeart from '@/assets/icon_heart.svg';
 import iconChat from '@/assets/icon_chat.svg';
-
-// 더미 데이터 (나중에 API로 교체)
-const dummyProduct: Product = {
-  postId: 1,
-  title: '맥북 프로 14인치 M3 팝니다',
-  price: 1500000,
-  category: '전자기기',
-  status: '판매중',
-  imageUrl: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800',
-  writerId: '0112345',
-  writer: { studentId: '0112345', name: '홍길동', class: '13기', role: 'ROLE_USER' },
-  chatRoomCount: 5,
-  likeCount: 12,
-  isLiked: false,
-  createdAt: '2025-11-10T00:00:00Z',
-};
 
 export const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
 
-  // TODO: API에서 실제 데이터 가져오기
-  const [product] = useState<Product>(dummyProduct);
-  const [isLiked, setIsLiked] = useState(product.isLiked);
-  const [likeCount, setLikeCount] = useState(product.likeCount);
+  const [product, setProduct] = useState<ProductDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [isLiked, setIsLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-  // 작성자인지 확인
-  const isAuthor = user?.studentId === product.writerId;
+  // 상품 정보 로드
+  useEffect(() => {
+    const fetchProduct = async () => {
+      if (!id) return;
+
+      setLoading(true);
+      setError('');
+
+      try {
+        const response = await getPostById(parseInt(id));
+
+        if (response.success && response.post) {
+          // 이미지 URL을 절대 경로로 변환
+          const productWithFullUrls = {
+            ...response.post,
+            images: response.post.images.map((img: any) => ({
+              ...img,
+              imageUrl: img.imageUrl.startsWith('http')
+                ? img.imageUrl
+                : `http://k13d201.p.ssafy.io:8083/${img.imageUrl}`
+            }))
+          };
+          setProduct(productWithFullUrls);
+          setLikeCount(response.post.likeCount);
+
+          // 로그인한 경우 좋아요 상태 확인
+          if (user) {
+            const likeStatusResponse = await checkLikeStatus(parseInt(id));
+            if (likeStatusResponse.success) {
+              setIsLiked(likeStatusResponse.isLiked);
+            }
+          }
+        } else {
+          setError(response.message || '상품 정보를 불러올 수 없습니다.');
+        }
+      } catch (err) {
+        console.error('상품 조회 실패:', err);
+        setError('상품 정보를 불러오는데 실패했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [id, user]);
 
   // 좋아요 토글
-  const handleLikeToggle = () => {
-    // TODO: API 호출
-    setIsLiked(!isLiked);
-    setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
-  };
-
-  // 채팅하기
-  const handleChat = () => {
+  const handleLikeToggle = async () => {
     if (!user) {
       alert('로그인이 필요합니다.');
       navigate('/login');
       return;
     }
-    // TODO: 채팅방 생성 API 호출 후 채팅 페이지로 이동
-    navigate('/chat');
+
+    if (!id) return;
+
+    try {
+      if (isLiked) {
+        const response = await removeLike(parseInt(id));
+        if (response.success) {
+          setIsLiked(false);
+          setLikeCount(response.likeCount);
+        }
+      } else {
+        const response = await addLike(parseInt(id));
+        if (response.success) {
+          setIsLiked(true);
+          setLikeCount(response.likeCount);
+        }
+      }
+    } catch (err) {
+      console.error('좋아요 실패:', err);
+      alert('좋아요 처리에 실패했습니다.');
+    }
+  };
+
+  // 채팅하기
+  const handleChat = async () => {
+    if (!user) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+      return;
+    }
+
+    if (!id) return;
+
+    try {
+      // 채팅방 생성 또는 기존 채팅방 조회
+      const chatRoom = await createChatRoom(parseInt(id));
+
+      // 채팅방으로 이동
+      navigate(`/chat/${chatRoom.roomId}`);
+    } catch (err) {
+      console.error('채팅방 생성 실패:', err);
+      alert('채팅방 생성에 실패했습니다.');
+    }
   };
 
   // 수정하기
@@ -62,10 +124,24 @@ export const ProductDetailPage = () => {
   };
 
   // 삭제하기
-  const handleDelete = () => {
-    if (confirm('정말 삭제하시겠습니까?')) {
-      // TODO: API 호출
-      navigate('/');
+  const handleDelete = async () => {
+    if (!id) return;
+
+    if (!confirm('정말 삭제하시겠습니까?')) {
+      return;
+    }
+
+    try {
+      const response = await deletePost(parseInt(id));
+      if (response.success) {
+        alert('게시글이 삭제되었습니다.');
+        navigate('/');
+      } else {
+        alert(response.message || '게시글 삭제에 실패했습니다.');
+      }
+    } catch (err) {
+      console.error('삭제 실패:', err);
+      alert('게시글 삭제에 실패했습니다.');
     }
   };
 
@@ -85,17 +161,60 @@ export const ProductDetailPage = () => {
     return date.toLocaleDateString();
   };
 
+  // 작성자인지 확인
+  const isAuthor = user?.studentId === product?.writer.studentId;
+
+  // 로딩 상태
+  if (loading) {
+    return (
+      <Layout>
+        <div className="max-w-7xl mx-auto px-20 py-8">
+          <div className="flex justify-center items-center py-20">
+            <div className="text-gray-500">로딩 중...</div>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // 에러 상태
+  if (error || !product) {
+    return (
+      <Layout>
+        <div className="max-w-7xl mx-auto px-20 py-8">
+          <div className="flex flex-col justify-center items-center py-20">
+            <div className="text-danger mb-4">{error || '상품을 찾을 수 없습니다.'}</div>
+            <button
+              onClick={() => navigate('/')}
+              className="px-6 py-2 bg-primary text-white rounded-lg hover:bg-primary-600"
+            >
+              홈으로 돌아가기
+            </button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-20 py-8">
+        {/* 뒤로가기 버튼 */}
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
+        >
+          ← 뒤로가기
+        </button>
+
         <div className="grid grid-cols-2 gap-12">
           {/* 왼쪽: 이미지 */}
           <div className="space-y-4">
             {/* 메인 이미지 */}
             <div className="relative aspect-square bg-gray-100 rounded-2xl overflow-hidden">
-              {product.imageUrl ? (
+              {product.images && product.images.length > 0 ? (
                 <img
-                  src={product.imageUrl}
+                  src={product.images[currentImageIndex].imageUrl}
                   alt={product.title}
                   className="w-full h-full object-cover"
                 />
@@ -105,54 +224,68 @@ export const ProductDetailPage = () => {
                 </div>
               )}
               {/* 이미지 카운터 */}
-              <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
-                1/4
-              </div>
+              {product.images && product.images.length > 0 && (
+                <div className="absolute top-4 right-4 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                  {currentImageIndex + 1}/{product.images.length}
+                </div>
+              )}
             </div>
 
             {/* 썸네일 이미지들 */}
-            <div className="grid grid-cols-4 gap-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity">
-                  <img
-                    src={product.imageUrl}
-                    alt={`썸네일 ${i}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-            </div>
+            {product.images && product.images.length > 1 && (
+              <div className="grid grid-cols-4 gap-2">
+                {product.images.map((image, index) => (
+                  <div
+                    key={image.imageId}
+                    onClick={() => setCurrentImageIndex(index)}
+                    className={`aspect-square bg-gray-100 rounded-lg overflow-hidden cursor-pointer transition-opacity ${
+                      currentImageIndex === index ? 'ring-2 ring-primary' : 'hover:opacity-80'
+                    }`}
+                  >
+                    <img
+                      src={image.imageUrl}
+                      alt={`썸네일 ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* 오른쪽: 정보 */}
           <div className="flex flex-col">
-            {/* 작성자 정보와 판매중 버튼 */}
+            {/* 작성자 정보와 상태 */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
-                <UserProfile user={product.writer} size="md" showInfo={false} />
+                <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-white font-bold">
+                  {product.writer.name.charAt(0)}
+                </div>
                 <div>
                   <p className="font-medium text-gray-900">{product.writer.name}</p>
                   <p className="text-sm text-gray-600">학번: {product.writer.studentId}</p>
                 </div>
               </div>
-              <button className="px-4 py-2 bg-primary-50 text-primary border border-primary rounded-lg text-sm font-medium">
-                판매중
-              </button>
+              <span
+                className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                  product.status === '판매중'
+                    ? 'bg-primary-50 text-primary border border-primary'
+                    : 'bg-gray-100 text-gray-600 border border-gray-300'
+                }`}
+              >
+                {product.status}
+              </span>
             </div>
 
             {/* 제목 */}
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">
-              {product.title}
-            </h1>
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">{product.title}</h1>
 
             {/* 가격 */}
-            <p className="text-3xl font-bold text-primary mb-6">
-              {product.price.toLocaleString()}원
-            </p>
+            <p className="text-3xl font-bold text-primary mb-6">{product.price.toLocaleString()}원</p>
 
-            {/* 여성의류 카테고리 */}
+            {/* 카테고리 및 등록일 */}
             <div className="mb-6">
-              <span className="text-sm text-gray-600">여성의류</span>
+              <span className="text-sm text-gray-600">{product.category}</span>
               <span className="mx-2 text-gray-400">·</span>
               <span className="text-sm text-gray-600">{formatDate(product.createdAt)}</span>
             </div>
@@ -160,10 +293,7 @@ export const ProductDetailPage = () => {
             {/* 상품 설명 */}
             <div className="flex-1 mb-6">
               <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-                브랜드 니트 가디건 판매합니다.
-                {'\n\n'}작년에 구매했는데 몇 번 안 입어서 상태 좋습니다.
-                {'\n\n'}사이즈는 프리사이즈이고, 색상은 베이지입니다.
-                {'\n\n'}직거래 또는 택배 가능합니다.
+                {product.description || '상품 설명이 없습니다.'}
               </p>
             </div>
 
@@ -184,10 +314,16 @@ export const ProductDetailPage = () => {
               {isAuthor ? (
                 // 작성자인 경우
                 <>
-                  <button className="flex-1 px-6 py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors">
+                  <button
+                    onClick={handleEdit}
+                    className="flex-1 px-6 py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors"
+                  >
                     수정하기
                   </button>
-                  <button className="flex-1 px-6 py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors">
+                  <button
+                    onClick={handleDelete}
+                    className="flex-1 px-6 py-3 border border-danger text-danger rounded-xl font-medium hover:bg-red-50 transition-colors"
+                  >
                     삭제하기
                   </button>
                 </>

@@ -1,7 +1,7 @@
 export type User = {
   studentId: string;  // 학번 (PK)
   name: string;       // 이름
-  class: string;      // 반 (13기/14기)
+  className: string;  // 반 (백엔드와 일치)
   role: 'ROLE_USER' | 'ROLE_ADMIN';  // 권한
 }
 
@@ -15,12 +15,27 @@ export type LoginResponse = {
   message: string;
   userId: string;
   roles: string[];
-  token?: string;
 }
 
 export type SignupRequest = {
   studentId: string;
   name: string;
-  class: string;
+  className: string;  // class → className으로 변경
   password: string;
+}
+
+export type SignupResponse = {
+  success: boolean;
+  message: string;
+  studentId: string;
+}
+
+export type UpdateProfileRequest = {
+  name?: string;
+  password?: string;
+}
+
+export type UpdateProfileResponse = {
+  success: boolean;
+  message: string;
 }

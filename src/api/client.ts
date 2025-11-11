@@ -6,31 +6,45 @@ const client = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 10000,
+  withCredentials: true, // 세션 쿠키 전송 활성화
 });
-
-// 요청 인터셉터 - JWT 토큰 자동 추가
-client.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
 
 // 응답 인터셉터 - 에러 처리
 client.interceptors.response.use(
   (response) => response,
   (error) => {
-    // 401 Unauthorized - 로그인 페이지로 리다이렉트
+    // 401 Unauthorized - 세션 만료 또는 인증 필요
     if (error.response?.status === 401) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      window.location.href = '/login';
+      // 로그인 페이지가 아닌 경우에만 리다이렉트
+      if (!window.location.pathname.includes('/login')) {
+        // auth store 초기화
+        localStorage.removeItem('auth-storage');
+        window.location.href = '/login';
+      }
+    }
+
+    // 403 Forbidden - 권한 없음
+    if (error.response?.status === 403) {
+      alert('접근 권한이 없습니다.');
+    }
+
+    // 404 Not Found
+    if (error.response?.status === 404) {
+      const message = error.response?.data?.message || '요청한 리소스를 찾을 수 없습니다.';
+      console.error('404 Error:', message);
+    }
+
+    // 500 Internal Server Error
+    if (error.response?.status === 500) {
+      const message = error.response?.data?.message || '서버 오류가 발생했습니다.';
+      console.error('Server Error:', message);
+      alert('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+    }
+
+    // 네트워크 오류
+    if (!error.response) {
+      console.error('Network Error:', error.message);
+      alert('네트워크 연결을 확인해주세요.');
     }
 
     return Promise.reject(error);

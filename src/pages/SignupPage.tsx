@@ -9,7 +9,7 @@ export const SignupPage = () => {
   const [formData, setFormData] = useState({
     studentId: '',
     name: '',
-    class: '',
+    className: '',
     password: '',
     passwordConfirm: '',
   });
@@ -53,16 +53,20 @@ export const SignupPage = () => {
 
     try {
       // 회원가입 API 호출
-      await signup({
+      const response = await signup({
         studentId: formData.studentId,
         name: formData.name,
-        class: formData.class,
+        className: formData.className,
         password: formData.password,
       });
 
       // 회원가입 성공 후 로그인 페이지로 이동
-      alert('회원가입이 완료되었습니다. 로그인해주세요.');
-      navigate('/login');
+      if (response.success) {
+        alert(response.message || '회원가입이 완료되었습니다. 로그인해주세요.');
+        navigate('/login');
+      } else {
+        setError(response.message || '회원가입에 실패했습니다.');
+      }
     } catch (err) {
       // 에러 메시지 처리
       const errorMessage = (err as { response?: { data?: { message?: string } } }).response?.data?.message || '회원가입에 실패했습니다. 다시 시도해주세요.';
@@ -119,11 +123,11 @@ export const SignupPage = () => {
 
           {/* 반 선택 - 라벨 없음 */}
           <input
-            id="class"
-            name="class"
+            id="className"
+            name="className"
             type="text"
             placeholder="반"
-            value={formData.class}
+            value={formData.className}
             onChange={handleChange}
             required
             className="w-full px-6 py-4 bg-[#E6EDF6] border-0 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary"

@@ -23,27 +23,23 @@ export const LoginPage = () => {
     }
 
     try {
-      // 로그인 API 호출
+      // 로그인 API 호출 (세션 쿠키 자동 설정됨)
       const response = await loginApi({ studentId, password });
 
-      // 디버깅: 서버 응답 확인
-      console.log('로그인 API 응답:', response);
-
-      // 서버 응답을 User 타입으로 변환
       if (response.success && response.userId) {
+        // 세션 쿠키가 설정되었으므로, 기본 사용자 정보만 저장
         const user = {
           studentId: response.userId,
-          name: '', // 서버에서 name을 제공하지 않으므로 빈 값
-          class: '', // 서버에서 class를 제공하지 않으므로 빈 값
+          name: '', // 추후 프로필 API로 조회 가능
+          className: '', // 추후 프로필 API로 조회 가능
           role: (response.roles[0] as 'ROLE_USER' | 'ROLE_ADMIN') || 'ROLE_USER',
         };
-        const token = response.token || 'temp-token-' + response.userId;
 
-        // Zustand 스토어에 사용자 정보와 토큰 저장
-        login(user, token);
+        // Zustand 스토어에 사용자 정보 저장 (토큰은 제거됨)
+        login(user);
         navigate('/');
       } else {
-        setError('로그인 응답 형식이 올바르지 않습니다.');
+        setError(response.message || '로그인에 실패했습니다.');
       }
     } catch (err) {
       // 에러 메시지 처리

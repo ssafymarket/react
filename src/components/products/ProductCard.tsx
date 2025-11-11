@@ -25,9 +25,9 @@ export const ProductCard = ({ product }: ProductCardProps) => {
     >
       {/* 이미지 */}
       <div className="aspect-square bg-gray-100 overflow-hidden">
-        {product.imageUrl ? (
+        {product.images && product.images.length > 0 ? (
           <img
-            src={product.imageUrl}
+            src={product.images[0]}
             alt={product.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
           />

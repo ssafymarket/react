@@ -1,11 +1,12 @@
 import client from '../client';
-import type { SignupRequest, LoginRequest, LoginResponse } from '@/types/user';
+import type { SignupRequest, SignupResponse, LoginRequest, LoginResponse } from '@/types/user';
 
 /**
  * 회원가입 API
  */
-export const signup = async (data: SignupRequest): Promise<void> => {
-  await client.post('/auth/signup', data);
+export const signup = async (data: SignupRequest): Promise<SignupResponse> => {
+  const response = await client.post<SignupResponse>('/auth/signup', data);
+  return response.data;
 };
 
 /**

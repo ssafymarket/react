@@ -10,4 +10,13 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://k13d201.p.ssafy.io:8083',
+        changeOrigin: true,
+        secure: false,
+      }
+    }
+  }
 })
