@@ -11,8 +11,11 @@ export type LoginRequest = {
 }
 
 export type LoginResponse = {
-  user: User;
-  token: string;
+  success: boolean;
+  message: string;
+  userId: string;
+  roles: string[];
+  token?: string;
 }
 
 export type SignupRequest = {

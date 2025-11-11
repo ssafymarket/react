@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
-import { Button } from '@/components/common/Button';
-import { Input } from '@/components/common/Input';
 import logo from '@/assets/icon_logo.svg';
+import { login as loginApi } from '@/api/auth';
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -24,22 +23,33 @@ export const LoginPage = () => {
     }
 
     try {
-      // TODO: 실제 API 호출로 교체
-      // const response = await api.post('/auth/login', { studentId, password });
+      // 로그인 API 호출
+      const response = await loginApi({ studentId, password });
 
-      // 임시 로그인 처리
-      const mockUser = {
-        studentId,
-        name: '홍길동',
-        class: '13기' as const,
-        role: 'ROLE_USER' as const,
-      };
-      const mockToken = 'test-token-' + studentId;
+      // 디버깅: 서버 응답 확인
+      console.log('로그인 API 응답:', response);
 
-      login(mockUser, mockToken);
-      navigate('/');
+      // 서버 응답을 User 타입으로 변환
+      if (response.success && response.userId) {
+        const user = {
+          studentId: response.userId,
+          name: '', // 서버에서 name을 제공하지 않으므로 빈 값
+          class: '', // 서버에서 class를 제공하지 않으므로 빈 값
+          role: (response.roles[0] as 'ROLE_USER' | 'ROLE_ADMIN') || 'ROLE_USER',
+        };
+        const token = response.token || 'temp-token-' + response.userId;
+
+        // Zustand 스토어에 사용자 정보와 토큰 저장
+        login(user, token);
+        navigate('/');
+      } else {
+        setError('로그인 응답 형식이 올바르지 않습니다.');
+      }
     } catch (err) {
-      setError('로그인에 실패했습니다. 학번과 비밀번호를 확인해주세요.');
+      // 에러 메시지 처리
+      console.error('로그인 에러:', err);
+      const errorMessage = (err as { response?: { data?: { message?: string } } }).response?.data?.message || '로그인에 실패했습니다. 학번과 비밀번호를 확인해주세요.';
+      setError(errorMessage);
     }
   };
 

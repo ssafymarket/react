@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Button } from '@/components/common/Button';
-import { Input } from '@/components/common/Input';
 import logo from '@/assets/icon_logo.svg';
+import { signup } from '@/api/auth';
 
 export const SignupPage = () => {
   const navigate = useNavigate();
@@ -10,7 +9,7 @@ export const SignupPage = () => {
   const [formData, setFormData] = useState({
     studentId: '',
     name: '',
-    class: '13기' as '13기' | '14기',
+    class: '',
     password: '',
     passwordConfirm: '',
   });
@@ -53,19 +52,21 @@ export const SignupPage = () => {
     }
 
     try {
-      // TODO: 실제 API 호출로 교체
-      // const response = await api.post('/auth/signup', {
-      //   studentId: formData.studentId,
-      //   name: formData.name,
-      //   class: formData.class,
-      //   password: formData.password,
-      // });
+      // 회원가입 API 호출
+      await signup({
+        studentId: formData.studentId,
+        name: formData.name,
+        class: formData.class,
+        password: formData.password,
+      });
 
-      // 임시 처리 - 회원가입 성공 후 로그인 페이지로 이동
+      // 회원가입 성공 후 로그인 페이지로 이동
       alert('회원가입이 완료되었습니다. 로그인해주세요.');
       navigate('/login');
     } catch (err) {
-      setError('회원가입에 실패했습니다. 다시 시도해주세요.');
+      // 에러 메시지 처리
+      const errorMessage = (err as { response?: { data?: { message?: string } } }).response?.data?.message || '회원가입에 실패했습니다. 다시 시도해주세요.';
+      setError(errorMessage);
     }
   };
 
@@ -117,17 +118,16 @@ export const SignupPage = () => {
           />
 
           {/* 반 선택 - 라벨 없음 */}
-          <select
+          <input
             id="class"
             name="class"
+            type="text"
+            placeholder="반"
             value={formData.class}
             onChange={handleChange}
             required
-            className="w-full px-6 py-4 bg-[#E6EDF6] border-0 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            <option value="13기">13기</option>
-            <option value="14기">14기</option>
-          </select>
+            className="w-full px-6 py-4 bg-[#E6EDF6] border-0 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary"
+          />
 
           {/* 비밀번호 입력 - 라벨 없음 */}
           <input

@@ -14,9 +14,9 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      user: { studentId: '0100001', name: '관리자', class: '13기', role: 'ROLE_ADMIN' },
-      token: 'test-token',
-      isLoggedIn: true,
+      user: null,
+      token: null,
+      isLoggedIn: false,
 
       login: (user, token) => {
         localStorage.setItem('token', token);

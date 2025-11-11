@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { UserProfile } from '@/components/common/UserProfile';
@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 import type { Product } from '@/types/product';
 import iconPerson from '@/assets/icon_person.svg';
 import iconLogout from '@/assets/icon_logout.svg';
+import { logout as logoutApi } from '@/api/auth';
 
 // 더미 판매목록
 const dummyProducts: Product[] = [
@@ -104,15 +105,28 @@ export const MyPage = () => {
   const { user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'info' | 'logout'>('info');
 
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    }
+  }, [user, navigate]);
+
   if (!user) {
-    navigate('/login');
     return null;
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (confirm('로그아웃 하시겠습니까?')) {
-      logout();
-      navigate('/');
+      try {
+        // 로그아웃 API 호출
+        await logoutApi();
+      } catch (err) {
+        console.error('로그아웃 API 호출 실패:', err);
+      } finally {
+        // API 호출 성공 여부와 관계없이 로컬 상태 클리어
+        logout();
+        navigate('/');
+      }
     }
   };
 
@@ -124,7 +138,6 @@ export const MyPage = () => {
           <aside className="bg-gray-50 rounded-2xl p-6">
             {/* 프로필 정보 */}
             <div className="text-center mb-8">
-              <UserProfile user={user} size="lg" showInfo={false} />
               <p className="mt-4 text-lg font-bold text-gray-900">{user.name}</p>
               <p className="text-sm text-gray-600">{user.studentId}</p>
             </div>

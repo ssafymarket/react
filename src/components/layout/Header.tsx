@@ -51,7 +51,7 @@ export const Header = () => {
                 </Link>
 
                 {/* 마이페이지 버튼 */}
-                <Link to="/mypage">
+                <Link to={isLoggedIn ? "/mypage" : "/login"}>
                   <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
                     <img src={iconPerson} alt="마이페이지" className="w-6 h-6" />
                   </button>
