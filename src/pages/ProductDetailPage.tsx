@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useMutation } from '@tanstack/react-query';
 import { Layout } from '@/components/layout/Layout';
 import { UserProfile } from '@/components/common/UserProfile';
 import { Button } from '@/components/common/Button';
 import { Badge } from '@/components/common/Badge';
 import { useAuthStore } from '@/store/authStore';
+import { createOrGetChatRoom } from '@/api/chat/chat.api';
 import type { Product } from '@/types/product';
 import iconHeart from '@/assets/icon_heart.svg';
 import iconChat from '@/assets/icon_chat.svg';
@@ -45,6 +47,23 @@ export const ProductDetailPage = () => {
     setLikeCount(isLiked ? likeCount - 1 : likeCount + 1);
   };
 
+  // 채팅방 생성 mutation
+  const createChatMutation = useMutation({
+    mutationFn: (postId: number) => createOrGetChatRoom(postId),
+    onSuccess: (chatRoom) => {
+      // 채팅방 생성 성공 시 채팅 페이지로 이동
+      navigate(`/chat?roomId=${chatRoom.roomId}`);
+    },
+    onError: (error: any) => {
+      console.error('채팅방 생성 실패:', error);
+      if (error.response?.status === 400) {
+        alert('자신의 상품에는 채팅을 할 수 없습니다.');
+      } else {
+        alert('채팅방 생성에 실패했습니다. 다시 시도해주세요.');
+      }
+    },
+  });
+
   // 채팅하기
   const handleChat = () => {
     if (!user) {
@@ -52,8 +71,14 @@ export const ProductDetailPage = () => {
       navigate('/login');
       return;
     }
-    // TODO: 채팅방 생성 API 호출 후 채팅 페이지로 이동
-    navigate('/chat');
+
+    if (isAuthor) {
+      alert('자신의 상품에는 채팅을 할 수 없습니다.');
+      return;
+    }
+
+    // 채팅방 생성 또는 기존 채팅방 가져오기
+    createChatMutation.mutate(product.postId);
   };
 
   // 수정하기

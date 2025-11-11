@@ -1,8 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Button, Badge } from '../common';
 import { SearchBar } from './SearchBar';
 import { useAuthStore } from '@/store/authStore';
-import { useChatStore } from '@/store/chatStore';
+import { getTotalUnreadCount } from '@/api/chat/chat.api';
 import logo from '@/assets/icon_logo.svg';
 import iconPen from '@/assets/icon_pen.svg';
 import iconChat from '@/assets/icon_chat.svg';
@@ -10,10 +11,15 @@ import iconPerson from '@/assets/icon_person.svg';
 
 export const Header = () => {
   const { isLoggedIn, user } = useAuthStore();
-  const { unreadCounts } = useChatStore();
 
-  // 전체 읽지 않은 메시지 수 계산
-  const totalUnreadCount = Object.values(unreadCounts).reduce((sum, count) => sum + count, 0);
+  // 전체 읽지 않은 메시지 수 조회 (30초마다 갱신)
+  const { data: totalUnreadCount = 0 } = useQuery({
+    queryKey: ['totalUnreadCount'],
+    queryFn: getTotalUnreadCount,
+    enabled: isLoggedIn,
+    refetchInterval: 30000, // 30초마다 갱신
+    refetchOnWindowFocus: true, // 창 포커스 시 갱신
+  });
 
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">

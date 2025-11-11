@@ -6,6 +6,7 @@ const client = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 10000,
+  withCredentials: true, // 쿠키를 자동으로 포함 (세션 인증 필요)
 });
 
 // 요청 인터셉터 - JWT 토큰 자동 추가

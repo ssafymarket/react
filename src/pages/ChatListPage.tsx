@@ -1,93 +1,181 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/layout/Layout';
 import { UserProfile } from '@/components/common/UserProfile';
+import { useAuthStore } from '@/store/authStore';
+import websocketService from '@/services/websocket.service';
+import { getChatRooms, getMessages, markAsRead } from '@/api/chat/chat.api';
+import type { ChatRoom, ChatMessage } from '@/types/chat';
 import iconSearch from '@/assets/icon_search.svg';
 import iconPicture from '@/assets/icon_picture.svg';
-import type { User } from '@/types/user';
-
-// 채팅방 타입
-type ChatRoom = {
-  id: number;
-  user: User;
-  productTitle: string;
-  productImage?: string;
-  lastMessage: string;
-  lastMessageTime: string;
-  unreadCount: number;
-};
-
-// 메시지 타입
-type Message = {
-  id: number;
-  senderId: string;
-  content: string;
-  timestamp: string;
-  isMe: boolean;
-};
-
-// 더미 채팅방 목록
-const dummyChatRooms: ChatRoom[] = [
-  {
-    id: 1,
-    user: { studentId: '1327907', name: '김민지', class: '13기', role: 'ROLE_USER' },
-    productTitle: '소니 WH-1000XM5 무선 헤드폰',
-    productImage: 'https://images.unsplash.com/photo-1545127398-14699f92334b?w=100',
-    lastMessage: '네, 앞쪽숍니다! 내일 받으 😊',
-    lastMessageTime: '2분 전',
-    unreadCount: 1,
-  },
-  {
-    id: 2,
-    user: { studentId: '1327907', name: '김민지', class: '13기', role: 'ROLE_USER' },
-    productTitle: '맥북 프로 14인치',
-    lastMessage: '네, 앞쪽숍니다! 내일 받으 😊',
-    lastMessageTime: '2분 전',
-    unreadCount: 0,
-  },
-];
-
-// 더미 메시지
-const dummyMessages: Message[] = [
-  {
-    id: 1,
-    senderId: '1327907',
-    content: '안녕하세요! 물건 발표도지 궁금합니다!',
-    timestamp: '오전 10:24',
-    isMe: false,
-  },
-  {
-    id: 2,
-    senderId: 'me',
-    content: '아직 안팔렸어요! 구매하시겠어요?',
-    timestamp: '오전 10:25',
-    isMe: true,
-  },
-  {
-    id: 3,
-    senderId: 'me',
-    content: '내일 가져갈꺼면 4층 복도에서 안나갈!',
-    timestamp: '오전 10:25',
-    isMe: true,
-  },
-  {
-    id: 4,
-    senderId: '1327907',
-    content: '네, 앞쪽숍니다! 내일 받으 😊',
-    timestamp: '오전 10:28',
-    isMe: false,
-  },
-];
 
 export const ChatListPage = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const queryClient = useQueryClient();
+  const { user, isLoggedIn } = useAuthStore();
+
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [connected, setConnected] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // 로그인 체크
+  useEffect(() => {
+    if (!isLoggedIn) {
+      alert('로그인이 필요합니다.');
+      navigate('/login');
+    }
+  }, [isLoggedIn, navigate]);
+
+  // 채팅방 목록 조회
+  const { data: chatRooms = [], isLoading: isLoadingRooms } = useQuery({
+    queryKey: ['chatRooms'],
+    queryFn: getChatRooms,
+    enabled: isLoggedIn,
+    refetchInterval: 30000, // 30초마다 갱신
+  });
+
+  // WebSocket 연결
+  useEffect(() => {
+    if (!isLoggedIn) return;
+
+    websocketService.connect(
+      () => {
+        console.log('WebSocket 연결 성공');
+        setConnected(true);
+      },
+      (error) => {
+        console.error('WebSocket 연결 실패:', error);
+        setConnected(false);
+        alert('실시간 채팅 연결에 실패했습니다. 로그인 상태를 확인해주세요.');
+      }
+    );
+
+    return () => {
+      websocketService.disconnect();
+      setConnected(false);
+    };
+  }, [isLoggedIn]);
+
+  // URL 파라미터로 채팅방 자동 선택
+  useEffect(() => {
+    const roomId = searchParams.get('roomId');
+    if (roomId && chatRooms.length > 0) {
+      const room = chatRooms.find((r) => r.roomId === Number(roomId));
+      if (room) {
+        setSelectedRoom(room);
+      }
+    }
+  }, [searchParams, chatRooms]);
+
+  // 선택된 채팅방 메시지 로드
+  useEffect(() => {
+    if (!selectedRoom) return;
+
+    const loadMessages = async () => {
+      try {
+        const msgs = await getMessages(selectedRoom.roomId);
+        setMessages(msgs.reverse()); // 최신순으로 정렬
+      } catch (error) {
+        console.error('메시지 로드 실패:', error);
+      }
+    };
+
+    loadMessages();
+
+    // WebSocket 구독
+    if (connected) {
+      const subscription = websocketService.subscribeToRoom(selectedRoom.roomId, (newMessage: ChatMessage) => {
+        console.log('새 메시지 수신:', newMessage);
+        setMessages((prev) => [...prev, newMessage]);
+
+        // 채팅방 목록 갱신
+        queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+      });
+
+      // 입장 메시지 전송
+      websocketService.enterRoom(selectedRoom.roomId);
+
+      // 읽음 처리
+      markAsRead(selectedRoom.roomId).catch(console.error);
+
+      return () => {
+        if (subscription) {
+          websocketService.unsubscribeFromRoom(selectedRoom.roomId);
+        }
+      };
+    }
+  }, [selectedRoom, connected, queryClient]);
+
+  // 메시지 스크롤
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // 메시지 전송
   const handleSendMessage = () => {
-    if (!messageInput.trim()) return;
-    // TODO: 메시지 전송 API 호출
-    setMessageInput('');
+    if (!messageInput.trim() || !selectedRoom) return;
+    if (!connected) {
+      alert('WebSocket이 연결되지 않았습니다.');
+      return;
+    }
+
+    try {
+      websocketService.sendMessage(selectedRoom.roomId, messageInput, 'CHAT');
+      setMessageInput('');
+    } catch (error) {
+      console.error('메시지 전송 실패:', error);
+      alert('메시지 전송에 실패했습니다.');
+    }
   };
+
+  // 채팅방 선택
+  const handleSelectRoom = (room: ChatRoom) => {
+    setSelectedRoom(room);
+    setMessages([]);
+  };
+
+  // 검색 필터
+  const filteredRooms = chatRooms.filter((room) => {
+    const otherUser = room.iAmBuyer ? room.seller : room.buyer;
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      otherUser.name.toLowerCase().includes(searchLower) ||
+      otherUser.studentId.includes(searchLower) ||
+      room.postTitle?.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // 시간 포맷팅
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return '방금 전';
+    if (minutes < 60) return `${minutes}분 전`;
+    if (hours < 24) return `${hours}시간 전`;
+    if (days < 7) return `${days}일 전`;
+    return date.toLocaleDateString();
+  };
+
+  const formatMessageTime = (dateString: string) => {
+    const date = new Date(dateString);
+    const hours = date.getHours();
+    const minutes = date.getMinutes();
+    const ampm = hours >= 12 ? '오후' : '오전';
+    const displayHours = hours % 12 || 12;
+    return `${ampm} ${displayHours}:${minutes.toString().padStart(2, '0')}`;
+  };
+
+  if (!isLoggedIn) return null;
 
   return (
     <Layout>
@@ -97,7 +185,12 @@ export const ChatListPage = () => {
           <aside className="border-r border-gray-200 flex flex-col">
             {/* 헤더 */}
             <div className="p-6 border-b border-gray-200">
-              <h1 className="text-2xl font-bold text-gray-900 mb-4">메시지</h1>
+              <div className="flex items-center justify-between mb-4">
+                <h1 className="text-2xl font-bold text-gray-900">메시지</h1>
+                <span className={`text-xs px-2 py-1 rounded-full ${connected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  {connected ? '🟢 연결됨' : '🔴 끊김'}
+                </span>
+              </div>
               {/* 검색창 */}
               <div className="relative">
                 <img src={iconSearch} alt="" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" />
@@ -113,31 +206,44 @@ export const ChatListPage = () => {
 
             {/* 채팅방 목록 */}
             <div className="flex-1 overflow-y-auto">
-              {dummyChatRooms.map((room) => (
-                <button
-                  key={room.id}
-                  onClick={() => setSelectedRoom(room)}
-                  className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
-                    selectedRoom?.id === room.id ? 'bg-gray-50' : ''
-                  }`}
-                >
-                  <UserProfile user={room.user} size="md" showInfo={false} />
-                  <div className="flex-1 text-left">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-medium text-gray-900">
-                        {room.user.name}({room.user.studentId})
-                      </span>
-                      <span className="text-xs text-gray-500">{room.lastMessageTime}</span>
-                    </div>
-                    <p className="text-sm text-gray-600 truncate">{room.lastMessage}</p>
-                  </div>
-                  {room.unreadCount > 0 && (
-                    <span className="flex-shrink-0 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                      {room.unreadCount}
-                    </span>
-                  )}
-                </button>
-              ))}
+              {isLoadingRooms ? (
+                <div className="flex items-center justify-center p-8 text-gray-500">
+                  로딩 중...
+                </div>
+              ) : filteredRooms.length === 0 ? (
+                <div className="flex items-center justify-center p-8 text-gray-500">
+                  채팅 내역이 없습니다
+                </div>
+              ) : (
+                filteredRooms.map((room) => {
+                  const otherUser = room.iAmBuyer ? room.seller : room.buyer;
+                  return (
+                    <button
+                      key={room.roomId}
+                      onClick={() => handleSelectRoom(room)}
+                      className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
+                        selectedRoom?.roomId === room.roomId ? 'bg-gray-50' : ''
+                      }`}
+                    >
+                      <UserProfile user={otherUser} size="md" showInfo={false} />
+                      <div className="flex-1 text-left">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="font-medium text-gray-900">
+                            {otherUser.name}({otherUser.studentId})
+                          </span>
+                          <span className="text-xs text-gray-500">{formatTime(room.lastMessageTime)}</span>
+                        </div>
+                        <p className="text-sm text-gray-600 truncate">{room.lastMessage || '메시지 없음'}</p>
+                      </div>
+                      {room.unreadCount && room.unreadCount > 0 ? (
+                        <span className="flex-shrink-0 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                          {room.unreadCount}
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })
+              )}
             </div>
           </aside>
 
@@ -148,18 +254,19 @@ export const ChatListPage = () => {
                 {/* 채팅 헤더 */}
                 <header className="p-4 border-b border-gray-200 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {selectedRoom.productImage && (
+                    {selectedRoom.postImage && (
                       <img
-                        src={selectedRoom.productImage}
-                        alt={selectedRoom.productTitle}
+                        src={selectedRoom.postImage}
+                        alt={selectedRoom.postTitle}
                         className="w-12 h-12 rounded-lg object-cover"
                       />
                     )}
                     <div>
                       <p className="font-medium text-gray-900">
-                        {selectedRoom.user.name}({selectedRoom.user.studentId})
+                        {(selectedRoom.iAmBuyer ? selectedRoom.seller : selectedRoom.buyer).name}
+                        ({(selectedRoom.iAmBuyer ? selectedRoom.seller : selectedRoom.buyer).studentId})
                       </p>
-                      <p className="text-sm text-gray-600">{selectedRoom.productTitle}</p>
+                      <p className="text-sm text-gray-600">{selectedRoom.postTitle}</p>
                     </div>
                   </div>
                   <button className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors">
@@ -169,43 +276,55 @@ export const ChatListPage = () => {
 
                 {/* 메시지 영역 */}
                 <div className="flex-1 overflow-y-auto p-6 space-y-4">
-                  {dummyMessages.map((message) => (
-                    <div
-                      key={message.id}
-                      className={`flex ${message.isMe ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div className={`flex items-start gap-2 max-w-[70%] ${message.isMe ? 'flex-row-reverse' : ''}`}>
-                        {!message.isMe && (
-                          <UserProfile
-                            user={selectedRoom.user}
-                            size="sm"
-                            showInfo={false}
-                          />
-                        )}
-                        <div>
-                          <div
-                            className={`px-4 py-2 rounded-2xl ${
-                              message.isMe
-                                ? 'bg-primary text-white rounded-tr-none'
-                                : 'bg-gray-100 text-gray-900 rounded-tl-none'
-                            }`}
-                          >
-                            <p className="text-sm">{message.content}</p>
-                          </div>
-                          <p className={`text-xs text-gray-500 mt-1 ${message.isMe ? 'text-right' : ''}`}>
-                            {message.timestamp}
-                          </p>
-                        </div>
-                      </div>
+                  {messages.length === 0 ? (
+                    <div className="flex items-center justify-center h-full text-gray-500">
+                      메시지가 없습니다. 첫 메시지를 보내보세요!
                     </div>
-                  ))}
+                  ) : (
+                    messages.map((message) => {
+                      const isMe = message.senderId === user?.studentId;
+                      const otherUser = selectedRoom.iAmBuyer ? selectedRoom.seller : selectedRoom.buyer;
+
+                      return (
+                        <div
+                          key={message.messageId}
+                          className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                        >
+                          <div className={`flex items-start gap-2 max-w-[70%] ${isMe ? 'flex-row-reverse' : ''}`}>
+                            {!isMe && (
+                              <UserProfile
+                                user={otherUser}
+                                size="sm"
+                                showInfo={false}
+                              />
+                            )}
+                            <div>
+                              <div
+                                className={`px-4 py-2 rounded-2xl ${
+                                  isMe
+                                    ? 'bg-primary text-white rounded-tr-none'
+                                    : 'bg-gray-100 text-gray-900 rounded-tl-none'
+                                }`}
+                              >
+                                <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                              </div>
+                              <p className={`text-xs text-gray-500 mt-1 ${isMe ? 'text-right' : ''}`}>
+                                {formatMessageTime(message.sentAt)}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                  <div ref={messagesEndRef} />
                 </div>
 
                 {/* 입력 영역 */}
                 <footer className="p-4 border-t border-gray-200">
                   <div className="flex items-center gap-3">
-                    <button className="p-2 text-primary hover:bg-primary-50 rounded-lg transition-colors">
-                      <img src={iconPicture} alt="이미지" className="w-6 h-6" />
+                    <button className="p-2 text-primary hover:bg-primary-50 rounded-lg transition-colors" disabled>
+                      <img src={iconPicture} alt="이미지" className="w-6 h-6 opacity-50" />
                     </button>
                     <input
                       type="text"
@@ -213,11 +332,13 @@ export const ChatListPage = () => {
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                      className="flex-1 px-4 py-3 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                      disabled={!connected}
+                      className="flex-1 px-4 py-3 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
                     />
                     <button
                       onClick={handleSendMessage}
-                      className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-600 transition-colors"
+                      disabled={!connected || !messageInput.trim()}
+                      className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       전송
                     </button>

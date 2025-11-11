@@ -10,4 +10,22 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
     },
   },
+  define: {
+    global: 'globalThis',
+  },
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://k13d201.p.ssafy.io:8083',
+        changeOrigin: true,
+        secure: false,
+      },
+      '/ws': {
+        target: 'http://k13d201.p.ssafy.io:8083',
+        changeOrigin: true,
+        secure: false,
+        ws: true, // WebSocket 프록시 활성화
+      },
+    },
+  },
 })
