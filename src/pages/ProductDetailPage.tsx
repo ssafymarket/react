@@ -4,7 +4,7 @@ import { Layout } from '@/components/layout/Layout';
 import { useAuthStore } from '@/store/authStore';
 import type { ProductDetail } from '@/types/product';
 import { getPostById, deletePost, addLike, removeLike, checkLikeStatus } from '@/api/post';
-import { createChatRoom } from '@/api/chat';
+import { createOrGetChatRoom } from '@/api/chat';
 import iconHeart from '@/assets/icon_heart.svg';
 import iconChat from '@/assets/icon_chat.svg';
 
@@ -106,15 +106,26 @@ export const ProductDetailPage = () => {
 
     if (!id) return;
 
+    // 작성자인지 확인
+    const isAuthor = user?.studentId === product?.writer.studentId;
+    if (isAuthor) {
+      alert('자신의 상품에는 채팅을 할 수 없습니다.');
+      return;
+    }
+
     try {
       // 채팅방 생성 또는 기존 채팅방 조회
-      const chatRoom = await createChatRoom(parseInt(id));
+      const chatRoom = await createOrGetChatRoom(parseInt(id));
 
       // 채팅방으로 이동
-      navigate(`/chat/${chatRoom.roomId}`);
-    } catch (err) {
+      navigate(`/chat?roomId=${chatRoom.roomId}`);
+    } catch (err: any) {
       console.error('채팅방 생성 실패:', err);
-      alert('채팅방 생성에 실패했습니다.');
+      if (err.response?.status === 400) {
+        alert('자신의 상품에는 채팅을 할 수 없습니다.');
+      } else {
+        alert('채팅방 생성에 실패했습니다. 다시 시도해주세요.');
+      }
     }
   };
 

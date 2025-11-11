@@ -6,7 +6,7 @@ const client = axios.create({
     'Content-Type': 'application/json',
   },
   timeout: 10000,
-  withCredentials: true, // 세션 쿠키 전송 활성화
+  withCredentials: true, // 쿠키를 자동으로 포함 (세션 인증 필요)
 });
 
 // 응답 인터셉터 - 에러 처리
