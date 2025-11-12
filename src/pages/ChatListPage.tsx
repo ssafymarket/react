@@ -5,10 +5,11 @@ import { Layout } from '@/components/layout/Layout';
 import { UserProfile } from '@/components/common/UserProfile';
 import { useAuthStore } from '@/store/authStore';
 import websocketService from '@/services/websocket.service';
-import { getChatRooms, getMessages, markAsRead } from '@/api/chat/chat.api';
+import { getChatRooms, getChatRoom, getMessages, markAsRead } from '@/api/chat/chat.api';
 import type { ChatRoom, ChatMessage } from '@/types/chat';
 import iconSearch from '@/assets/icon_search.svg';
 import iconPicture from '@/assets/icon_picture.svg';
+import iconLogo from '@/assets/icon_logo.svg';
 
 export const ChatListPage = () => {
   const navigate = useNavigate();
@@ -35,12 +36,11 @@ export const ChatListPage = () => {
     }
   }, [isLoggedIn, navigate]);
 
-  // 채팅방 목록 조회
+  // 채팅방 목록 조회 (refetchInterval 제거 - WebSocket으로 실시간 업데이트)
   const { data: chatRooms = [], isLoading: isLoadingRooms } = useQuery({
     queryKey: ['chatRooms'],
     queryFn: getChatRooms,
     enabled: isLoggedIn,
-    refetchInterval: 30000, // 30초마다 갱신
   });
 
   // WebSocket 연결
@@ -65,15 +65,42 @@ export const ChatListPage = () => {
     };
   }, [isLoggedIn]);
 
-  // URL 파라미터로 채팅방 자동 선택 (최초 1회만)
+  // URL 파라미터로 채팅방 자동 선택 및 로드 (최적화)
   useEffect(() => {
-    const roomId = searchParams.get('roomId');
-    if (roomId && chatRooms.length > 0 && !selectedRoom) {
-      const room = chatRooms.find((r) => r.roomId === Number(roomId));
-      if (room) {
-        setSelectedRoom(room);
-      }
+    const roomIdParam = searchParams.get('roomId');
+    if (!roomIdParam || selectedRoom) return;
+
+    const roomId = Number(roomIdParam);
+
+    // 먼저 기존 목록에서 찾기 (이미 로드된 경우)
+    const existingRoom = chatRooms.find((r) => r.roomId === roomId);
+    if (existingRoom) {
+      setSelectedRoom(existingRoom);
+      return;
     }
+
+    // 목록에 없으면 특정 채팅방만 조회 (병렬 처리)
+    const loadRoomAndMessages = async () => {
+      try {
+        const [room, msgs] = await Promise.all([
+          getChatRoom(roomId),
+          getMessages(roomId),
+        ]);
+
+        setSelectedRoom(room);
+
+        // 메시지 정렬 및 설정
+        const sorted = msgs.sort((a, b) =>
+          new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
+        );
+        setMessages(sorted);
+      } catch (error) {
+        console.error('채팅방 로드 실패:', error);
+        setMessageError('채팅방을 불러오는데 실패했습니다.');
+      }
+    };
+
+    loadRoomAndMessages();
   }, [searchParams, chatRooms, selectedRoom]);
 
   // 선택된 채팅방 메시지 로드 (채팅방 변경 시에만)
@@ -166,13 +193,13 @@ export const ChatListPage = () => {
     // 메시지는 useEffect에서 자동으로 로드되므로 초기화하지 않음
   };
 
-  // 검색 필터
+  // 검색 필터 (판매자 기준)
   const filteredRooms = chatRooms.filter((room) => {
-    const otherUser = room.iAmBuyer ? room.seller : room.buyer;
+    const seller = room.seller;
     const searchLower = searchQuery.toLowerCase();
     return (
-      otherUser.name.toLowerCase().includes(searchLower) ||
-      otherUser.studentId.includes(searchLower) ||
+      seller.name.toLowerCase().includes(searchLower) ||
+      seller.studentId.includes(searchLower) ||
       room.postTitle?.toLowerCase().includes(searchLower)
     );
   });
@@ -248,7 +275,8 @@ export const ChatListPage = () => {
                 </div>
               ) : (
                 filteredRooms.map((room) => {
-                  const otherUser = room.iAmBuyer ? room.seller : room.buyer;
+                  // 상대방 정보 표시 (내 studentId와 다른 사람)
+                  const otherUser = room.buyer.studentId === user?.studentId ? room.seller : room.buyer;
                   const postImageUrl = room.postImage
                     ? (room.postImage.startsWith('http') ? room.postImage : `${IMAGE_BASE_URL}${room.postImage}`)
                     : null;
@@ -270,9 +298,11 @@ export const ChatListPage = () => {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                            이미지 없음
-                          </div>
+                          <img
+                            src={iconLogo}
+                            alt="로고"
+                            className="w-full h-full object-contain p-2"
+                          />
                         )}
                       </div>
 
@@ -304,17 +334,25 @@ export const ChatListPage = () => {
                 {/* 채팅 헤더 */}
                 <header className="p-4 border-b border-gray-200 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {selectedRoom.postImage && (
-                      <img
-                        src={selectedRoom.postImage}
-                        alt={selectedRoom.postTitle}
-                        className="w-12 h-12 rounded-lg object-cover"
-                      />
-                    )}
+                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
+                      {selectedRoom.postImage ? (
+                        <img
+                          src={selectedRoom.postImage.startsWith('http') ? selectedRoom.postImage : `${IMAGE_BASE_URL}${selectedRoom.postImage}`}
+                          alt={selectedRoom.postTitle}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <img
+                          src={iconLogo}
+                          alt="로고"
+                          className="w-full h-full object-contain p-2"
+                        />
+                      )}
+                    </div>
                     <div>
                       <p className="font-medium text-gray-900">
-                        {(selectedRoom.iAmBuyer ? selectedRoom.seller : selectedRoom.buyer).name}
-                        ({(selectedRoom.iAmBuyer ? selectedRoom.seller : selectedRoom.buyer).studentId})
+                        {selectedRoom.buyer.studentId === user?.studentId ? selectedRoom.seller.name : selectedRoom.buyer.name}
+                        ({selectedRoom.buyer.studentId === user?.studentId ? selectedRoom.seller.studentId : selectedRoom.buyer.studentId})
                       </p>
                       <p className="text-sm text-gray-600">{selectedRoom.postTitle}</p>
                     </div>
