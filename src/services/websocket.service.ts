@@ -179,10 +179,115 @@ class WebSocketService {
   }
 
   /**
+   * 전역 알림 구독 (/user/queue/notification)
+   */
+  subscribeToNotifications(callback: MessageCallback): StompSubscription | null {
+    if (!this.connected || !this.client) {
+      console.error('WebSocket 연결되지 않음');
+      return null;
+    }
+
+    const destination = '/user/queue/notification';
+
+    // 이미 구독 중이면 기존 구독 취소
+    if (this.subscriptions.has(destination)) {
+      console.log('전역 알림 재구독 - 기존 구독 취소');
+      const oldSubscription = this.subscriptions.get(destination);
+      oldSubscription?.unsubscribe();
+      this.subscriptions.delete(destination);
+    }
+
+    const subscription = this.client.subscribe(destination, (message) => {
+      try {
+        const data = JSON.parse(message.body);
+        console.log('🔔 전역 알림 수신:', data);
+        callback(data);
+      } catch (error) {
+        console.error('알림 메시지 파싱 에러:', error);
+      }
+    });
+
+    this.subscriptions.set(destination, subscription);
+    console.log('🔔 전역 알림 구독 완료');
+
+    return subscription;
+  }
+
+  /**
+   * 전역 알림 구독 취소
+   */
+  unsubscribeFromNotifications(): void {
+    const destination = '/user/queue/notification';
+    const subscription = this.subscriptions.get(destination);
+
+    if (subscription) {
+      subscription.unsubscribe();
+      this.subscriptions.delete(destination);
+      console.log('🔔 전역 알림 구독 취소');
+    }
+  }
+
+  /**
+   * 읽음 알림 구독 (/user/queue/read)
+   */
+  subscribeToReadNotifications(callback: MessageCallback): StompSubscription | null {
+    if (!this.connected || !this.client) {
+      console.error('WebSocket 연결되지 않음');
+      return null;
+    }
+
+    const destination = '/user/queue/read';
+
+    // 이미 구독 중이면 기존 구독 취소
+    if (this.subscriptions.has(destination)) {
+      console.log('읽음 알림 재구독 - 기존 구독 취소');
+      const oldSubscription = this.subscriptions.get(destination);
+      oldSubscription?.unsubscribe();
+      this.subscriptions.delete(destination);
+    }
+
+    const subscription = this.client.subscribe(destination, (message) => {
+      try {
+        const data = JSON.parse(message.body);
+        console.log('✅ 읽음 알림 수신:', data);
+        callback(data);
+      } catch (error) {
+        console.error('읽음 알림 메시지 파싱 에러:', error);
+      }
+    });
+
+    this.subscriptions.set(destination, subscription);
+    console.log('✅ 읽음 알림 구독 완료');
+
+    return subscription;
+  }
+
+  /**
+   * 읽음 알림 구독 취소
+   */
+  unsubscribeFromReadNotifications(): void {
+    const destination = '/user/queue/read';
+    const subscription = this.subscriptions.get(destination);
+
+    if (subscription) {
+      subscription.unsubscribe();
+      this.subscriptions.delete(destination);
+      console.log('✅ 읽음 알림 구독 취소');
+    }
+  }
+
+  /**
    * 연결 상태 확인
    */
   isConnected(): boolean {
     return this.connected;
+  }
+
+  /**
+   * Client 인스턴스 반환 (외부에서 직접 사용해야 할 경우)
+   */
+  getClient(): Client | null {
+    return this.client;
   }
 }
 

@@ -5,6 +5,7 @@ import { Layout } from '@/components/layout/Layout';
 import { UserProfile } from '@/components/common/UserProfile';
 import { Badge } from '@/components/common/Badge';
 import { useAuthStore } from '@/store/authStore';
+import { useChatStore } from '@/store/chatStore';
 import websocketService from '@/services/websocket.service';
 import { getChatRooms, getChatRoom, getMessages, markAsRead } from '@/api/chat/chat.api';
 import type { ChatRoom, ChatMessage } from '@/types/chat';
@@ -17,6 +18,7 @@ export const ChatListPage = () => {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { user, isLoggedIn } = useAuthStore();
+  const { setTotalUnreadCount } = useChatStore();
 
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -145,6 +147,67 @@ export const ChatListPage = () => {
     loadMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoom?.roomId]);
+
+  // 전역 알림 구독 (채팅방 목록 실시간 갱신용)
+  useEffect(() => {
+    if (!connected) return;
+
+    // 전역 알림 구독 - 다른 채팅방에서 메시지가 왔을 때도 목록 갱신
+    websocketService.subscribeToNotifications((notification) => {
+      console.log('🔔 [ChatListPage] 전역 알림 수신:', notification);
+
+      // Header의 totalUnreadCount 업데이트 (Header의 구독을 덮어썼기 때문에 여기서도 처리)
+      if (notification.totalUnreadCount !== undefined) {
+        setTotalUnreadCount(notification.totalUnreadCount);
+        // React Query 캐시도 업데이트
+        queryClient.setQueryData(['totalUnreadCount'], notification.totalUnreadCount);
+      }
+
+      // 채팅방 목록 갱신 (새 메시지로 인한 lastMessage, unreadCount 업데이트)
+      queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+
+      // 현재 보고 있는 방이 아닌 다른 방의 메시지인 경우에만 알림 처리
+      if (selectedRoom && notification.roomId === selectedRoom.roomId) {
+        // 현재 보고 있는 방의 메시지는 아래 개별 방 구독에서 처리
+        return;
+      }
+
+      // 다른 방의 메시지 알림 (필요 시 브라우저 알림 등 추가 가능)
+      console.log(`💬 [ChatListPage] 다른 방(${notification.roomId})에서 새 메시지:`, notification.content);
+    });
+
+    return () => {
+      websocketService.unsubscribeFromNotifications();
+    };
+  }, [connected, selectedRoom, queryClient, setTotalUnreadCount]);
+
+  // 읽음 알림 구독
+  useEffect(() => {
+    if (!connected) return;
+
+    // 읽음 알림 구독 - 상대방이 내 메시지를 읽었을 때
+    websocketService.subscribeToReadNotifications((readNotification) => {
+      console.log('✅ [ChatListPage] 읽음 알림 수신:', readNotification);
+
+      // 현재 보고 있는 방의 읽음 알림인 경우, 메시지 읽음 상태 업데이트
+      if (selectedRoom && readNotification.roomId === selectedRoom.roomId) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.senderId === user?.studentId && !msg.isRead
+              ? { ...msg, isRead: true, readAt: new Date().toISOString() }
+              : msg
+          )
+        );
+      }
+
+      // 채팅방 목록도 갱신 (unreadCount 업데이트)
+      queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+    });
+
+    return () => {
+      websocketService.unsubscribeFromReadNotifications();
+    };
+  }, [connected, selectedRoom, user?.studentId, queryClient]);
 
   // WebSocket 구독 (채팅방 선택 & 연결 완료 시)
   useEffect(() => {
