@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface SearchBarProps {
   onSearch?: (query: string) => void;
@@ -10,10 +11,19 @@ export const SearchBar = ({
   placeholder = '검색어를 입력하세요',
 }: SearchBarProps) => {
   const [query, setQuery] = useState('');
+  const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch?.(query);
+
+    if (!query.trim()) return;
+
+    // onSearch prop이 있으면 사용, 없으면 홈페이지로 검색 파라미터와 함께 이동
+    if (onSearch) {
+      onSearch(query);
+    } else {
+      navigate(`/?search=${encodeURIComponent(query)}`);
+    }
   };
 
   return (
