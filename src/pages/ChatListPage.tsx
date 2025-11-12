@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/layout/Layout';
 import { UserProfile } from '@/components/common/UserProfile';
+import { Badge } from '@/components/common/Badge';
 import { useAuthStore } from '@/store/authStore';
 import websocketService from '@/services/websocket.service';
 import { getChatRooms, getChatRoom, getMessages, markAsRead } from '@/api/chat/chat.api';
@@ -43,6 +44,17 @@ export const ChatListPage = () => {
     enabled: isLoggedIn,
   });
 
+  // chatRooms가 업데이트되면 selectedRoom도 동기화
+  useEffect(() => {
+    if (selectedRoom && chatRooms.length > 0) {
+      const updatedRoom = chatRooms.find(room => room.roomId === selectedRoom.roomId);
+      if (updatedRoom) {
+        setSelectedRoom(updatedRoom);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [chatRooms]);
+
   // WebSocket 연결
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -68,9 +80,12 @@ export const ChatListPage = () => {
   // URL 파라미터로 채팅방 자동 선택 및 로드 (최적화)
   useEffect(() => {
     const roomIdParam = searchParams.get('roomId');
-    if (!roomIdParam || selectedRoom) return;
+    if (!roomIdParam) return;
 
     const roomId = Number(roomIdParam);
+
+    // 이미 선택된 방이 있고, 같은 방이면 리턴
+    if (selectedRoom && selectedRoom.roomId === roomId) return;
 
     // 먼저 기존 목록에서 찾기 (이미 로드된 경우)
     const existingRoom = chatRooms.find((r) => r.roomId === roomId);
@@ -139,12 +154,16 @@ export const ChatListPage = () => {
 
     // WebSocket 구독
     websocketService.subscribeToRoom(roomId, (newMessage: ChatMessage) => {
-      console.log('새 메시지 수신:', newMessage);
+      console.log('✅ [ChatListPage] 새 메시지 수신:', newMessage);
+
       // 중복 메시지 방지
       setMessages((prev) => {
+        console.log('🔄 [ChatListPage] 현재 메시지 개수:', prev.length);
         if (prev.some(msg => msg.messageId === newMessage.messageId)) {
+          console.log('⚠️ [ChatListPage] 중복 메시지, 무시');
           return prev;
         }
+        console.log('✨ [ChatListPage] 새 메시지 추가');
         return [...prev, newMessage];
       });
 
@@ -241,7 +260,7 @@ export const ChatListPage = () => {
       <div className="max-w-7xl mx-auto px-20 py-8">
         <div className="grid grid-cols-[320px_1fr] gap-0 h-[calc(100vh-120px)] bg-white rounded-2xl overflow-hidden border border-gray-200">
           {/* 왼쪽: 채팅 목록 */}
-          <aside className="border-r border-gray-200 flex flex-col">
+          <aside className="border-r border-gray-200 flex flex-col h-full overflow-hidden">
             {/* 헤더 */}
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between mb-4">
@@ -264,7 +283,7 @@ export const ChatListPage = () => {
             </div>
 
             {/* 채팅방 목록 */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto min-h-0">
               {isLoadingRooms ? (
                 <div className="flex items-center justify-center p-8 text-gray-500">
                   로딩 중...
@@ -285,7 +304,7 @@ export const ChatListPage = () => {
                     <button
                       key={room.roomId}
                       onClick={() => handleSelectRoom(room)}
-                      className={`w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
+                      className={`relative w-full p-4 flex items-start gap-3 hover:bg-gray-50 transition-colors border-b border-gray-100 ${
                         selectedRoom?.roomId === room.roomId ? 'bg-gray-50' : ''
                       }`}
                     >
@@ -315,11 +334,11 @@ export const ChatListPage = () => {
                         </div>
                         <p className="text-sm text-gray-600 truncate">{room.lastMessage || '메시지 없음'}</p>
                       </div>
-                      {room.unreadCount && room.unreadCount > 0 ? (
-                        <span className="flex-shrink-0 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                          {room.unreadCount}
-                        </span>
-                      ) : null}
+
+                      {/* 읽지 않은 메시지 수 표시 */}
+                      {room.unreadCount && room.unreadCount > 0 && (
+                        <Badge count={room.unreadCount} className="absolute top-2 right-2" />
+                      )}
                     </button>
                   );
                 })
@@ -328,7 +347,7 @@ export const ChatListPage = () => {
           </aside>
 
           {/* 오른쪽: 채팅 화면 */}
-          <main className="flex flex-col">
+          <main className="flex flex-col h-full overflow-hidden">
             {selectedRoom ? (
               <>
                 {/* 채팅 헤더 */}
@@ -363,7 +382,7 @@ export const ChatListPage = () => {
                 </header>
 
                 {/* 메시지 영역 */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4" style={{ maxHeight: 'calc(100vh - 300px)' }}>
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
                   {isLoadingMessages ? (
                     <div className="flex items-center justify-center h-full text-gray-500">
                       메시지를 불러오는 중...

@@ -17,6 +17,11 @@ export type LoginResponse = {
   roles: string[];
 }
 
+export type MeResponse = {
+  success: boolean;
+  user: User;
+}
+
 export type SignupRequest = {
   studentId: string;
   name: string;

@@ -85,16 +85,19 @@ class WebSocketService {
     }
 
     const destination = `/topic/room/${roomId}`;
-    
-    // 이미 구독 중인지 확인
+
+    // 이미 구독 중이면 기존 구독 취소
     if (this.subscriptions.has(destination)) {
-      console.log(`이미 채팅방 ${roomId}를 구독 중입니다.`);
-      return this.subscriptions.get(destination)!;
+      console.log(`채팅방 ${roomId} 재구독 - 기존 구독 취소`);
+      const oldSubscription = this.subscriptions.get(destination);
+      oldSubscription?.unsubscribe();
+      this.subscriptions.delete(destination);
     }
 
     const subscription = this.client.subscribe(destination, (message) => {
       try {
         const data = JSON.parse(message.body);
+        console.log(`📨 [Room ${roomId}] 메시지 수신:`, data);
         callback(data);
       } catch (error) {
         console.error('메시지 파싱 에러:', error);
@@ -102,8 +105,8 @@ class WebSocketService {
     });
 
     this.subscriptions.set(destination, subscription);
-    console.log(`📢 채팅방 ${roomId} 구독`);
-    
+    console.log(`📢 채팅방 ${roomId} 구독 완료`);
+
     return subscription;
   }
 

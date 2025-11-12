@@ -3,16 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { useAuthStore } from '@/store/authStore';
 import type { Product, Transaction, LikedProduct } from '@/types/product';
+import type { User } from '@/types/user';
 import { getMySellingPosts, getMyTransactions, getLikedPosts } from '@/api/post';
-import { logout as logoutApi } from '@/api/auth';
+import { logout as logoutApi, getMe } from '@/api/auth';
 import iconPerson from '@/assets/icon_person.svg';
 import iconLogout from '@/assets/icon_logout.svg';
 
 export const MyPage = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuthStore();
+  const { user: storeUser, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'info' | 'logout'>('info');
 
+  const [user, setUserInfo] = useState<User | null>(storeUser);
   const [sellingProducts, setSellingProducts] = useState<Product[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [likedProducts, setLikedProducts] = useState<LikedProduct[]>([]);
@@ -22,26 +24,32 @@ export const MyPage = () => {
   const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
 
   useEffect(() => {
-    if (!user) {
+    if (!storeUser) {
       navigate('/login');
     }
-  }, [user, navigate]);
+  }, [storeUser, navigate]);
 
-  // 데이터 로드
+  // 데이터 로드 (사용자 정보 포함)
   useEffect(() => {
     const fetchData = async () => {
-      if (!user) return;
+      if (!storeUser) return;
 
       setLoading(true);
       setError('');
 
       try {
-        // 판매 목록, 거래 내역, 좋아요 게시글 동시 조회
-        const [sellingResponse, transactionsResponse, likedResponse] = await Promise.all([
+        // 내 정보, 판매 목록, 거래 내역, 좋아요 게시글 동시 조회
+        const [meResponse, sellingResponse, transactionsResponse, likedResponse] = await Promise.all([
+          getMe(),
           getMySellingPosts(),
           getMyTransactions(),
           getLikedPosts(),
         ]);
+
+        // 최신 사용자 정보 업데이트
+        if (meResponse.success && meResponse.user) {
+          setUserInfo(meResponse.user);
+        }
 
         if (sellingResponse.success) {
           // 이미지 URL을 절대 경로로 변환
@@ -87,7 +95,8 @@ export const MyPage = () => {
     };
 
     fetchData();
-  }, [user]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!user) {
     return null;
@@ -113,15 +122,12 @@ export const MyPage = () => {
       <div className="max-w-7xl mx-auto px-4 md:px-20 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
           {/* 왼쪽 사이드바 */}
-          <aside className="bg-gray-50 rounded-2xl p-6">
+          <aside className="bg-white rounded-2xl border border-gray-200 p-8 h-fit">
             {/* 프로필 정보 */}
-            <div className="text-center mb-8">
-              <div className="w-20 h-20 bg-primary rounded-full flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
-                {user.name.charAt(0)}
-              </div>
+            <div className="text-left mb-8">
               <p className="text-lg font-bold text-gray-900">{user.name}</p>
-              <p className="text-sm text-gray-600">{user.studentId}</p>
-              {user.className && <p className="text-sm text-gray-600">{user.className}</p>}
+              <p className="text-sm text-gray-600">학번: {user.studentId}</p>
+              {user.className && <p className="text-sm text-gray-600">반: {user.className}</p>}
             </div>
 
             {/* 탭 메뉴 */}
