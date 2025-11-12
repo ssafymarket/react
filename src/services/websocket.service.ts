@@ -20,7 +20,7 @@ class WebSocketService {
     }
 
     this.client = new Client({
-      webSocketFactory: () => new SockJS(import.meta.env.VITE_WS_URL || 'http://k13d201.p.ssafy.io:8083/ws', null, {
+      webSocketFactory: () => new SockJS(import.meta.env.VITE_WS_URL || 'http://k13d201.p.ssafy.io:8084/ws', null, {
         withCredentials: true, // 세션 쿠키 포함
       }),
 

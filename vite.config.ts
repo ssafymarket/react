@@ -16,12 +16,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://k13d201.p.ssafy.io:8083',
+        target: 'http://k13d201.p.ssafy.io:8084',
         changeOrigin: true,
         secure: false,
       },
       '/ws': {
-        target: 'http://k13d201.p.ssafy.io:8083',
+        target: 'http://k13d201.p.ssafy.io:8084',
         changeOrigin: true,
         secure: false,
         ws: true, // WebSocket 프록시 활성화

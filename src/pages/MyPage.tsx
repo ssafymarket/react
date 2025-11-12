@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { useAuthStore } from '@/store/authStore';
-import type { Product, Transaction } from '@/types/product';
-import { getMySellingPosts, getMyTransactions } from '@/api/post';
+import type { Product, Transaction, LikedProduct } from '@/types/product';
+import { getMySellingPosts, getMyTransactions, getLikedPosts } from '@/api/post';
 import { logout as logoutApi } from '@/api/auth';
 import iconPerson from '@/assets/icon_person.svg';
 import iconLogout from '@/assets/icon_logout.svg';
@@ -15,6 +15,7 @@ export const MyPage = () => {
 
   const [sellingProducts, setSellingProducts] = useState<Product[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [likedProducts, setLikedProducts] = useState<LikedProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -35,10 +36,11 @@ export const MyPage = () => {
       setError('');
 
       try {
-        // 판매 목록과 거래 내역 동시 조회
-        const [sellingResponse, transactionsResponse] = await Promise.all([
+        // 판매 목록, 거래 내역, 좋아요 게시글 동시 조회
+        const [sellingResponse, transactionsResponse, likedResponse] = await Promise.all([
           getMySellingPosts(),
           getMyTransactions(),
+          getLikedPosts(),
         ]);
 
         if (sellingResponse.success) {
@@ -64,6 +66,17 @@ export const MyPage = () => {
             }
           }));
           setTransactions(transactionsWithFullUrls);
+        }
+
+        if (likedResponse.success) {
+          // 좋아요 게시글의 이미지 URL도 변환
+          const likedWithFullUrls = likedResponse.posts.map(post => ({
+            ...post,
+            images: post.images.map((url: string) =>
+              url.startsWith('http') ? url : `${IMAGE_BASE_URL}${url}`
+            )
+          }));
+          setLikedProducts(likedWithFullUrls);
         }
       } catch (err) {
         console.error('데이터 조회 실패:', err);
@@ -251,6 +264,83 @@ export const MyPage = () => {
                       {sellingProducts.length > 3 && (
                         <button
                           onClick={() => navigate('/my/selling')}
+                          className="w-full px-6 py-3 border border-primary text-primary rounded-xl font-medium hover:bg-primary-50 transition-colors"
+                        >
+                          전체보기
+                        </button>
+                      )}
+                    </>
+                  )}
+                </section>
+
+                {/* 좋아요 */}
+                <section className="mb-8">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      좋아요 <span className="text-primary">{likedProducts.length}개</span>
+                    </h2>
+                  </div>
+
+                  {likedProducts.length === 0 ? (
+                    <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
+                      <p className="text-gray-500">좋아요 누른 상품이 없습니다.</p>
+                    </div>
+                  ) : (
+                    <>
+                      {/* 모바일: 리스트 형태 */}
+                      <div className="space-y-3 mb-4 lg:hidden">
+                        {likedProducts.slice(0, 3).map((product) => (
+                          <div
+                            key={product.postId}
+                            className="flex items-center gap-4 bg-white rounded-xl border border-gray-200 p-4 hover:border-primary cursor-pointer transition-colors"
+                            onClick={() => navigate(`/products/${product.postId}`)}
+                          >
+                            <div className="w-16 h-16 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0">
+                              {product.images && product.images.length > 0 && (
+                                <img
+                                  src={product.images[0]}
+                                  alt={product.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900">{product.title}</p>
+                              <p className="text-sm text-gray-600">{product.price.toLocaleString()}원</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* 데스크탑: 그리드 형태 */}
+                      <div className="hidden lg:grid lg:grid-cols-3 gap-4 mb-4">
+                        {likedProducts.slice(0, 3).map((product) => (
+                          <div
+                            key={product.postId}
+                            className="bg-white rounded-xl border border-gray-200 overflow-hidden hover:border-primary cursor-pointer transition-colors"
+                            onClick={() => navigate(`/products/${product.postId}`)}
+                          >
+                            <div className="aspect-square bg-gray-100 overflow-hidden">
+                              {product.images && product.images.length > 0 && (
+                                <img
+                                  src={product.images[0]}
+                                  alt={product.title}
+                                  className="w-full h-full object-cover"
+                                />
+                              )}
+                            </div>
+                            <div className="p-4">
+                              <p className="font-medium text-gray-900 mb-1 line-clamp-1">{product.title}</p>
+                              <p className="text-lg font-bold text-gray-900">{product.price.toLocaleString()}원</p>
+                              <p className="text-sm text-gray-500 mt-1">{product.status}</p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {likedProducts.length > 3 && (
+                        <button
+                          onClick={() => navigate('/my/liked')}
                           className="w-full px-6 py-3 border border-primary text-primary rounded-xl font-medium hover:bg-primary-50 transition-colors"
                         >
                           전체보기
