@@ -169,9 +169,9 @@ export const getPostsByCategory = async (
   sort: string = 'latest'
 ): Promise<PaginatedResponse<Product>> => {
   const response = await client.get<PaginatedResponse<Product>>(
-    `/posts/category/${category}`,
+    `/posts/category`,
     {
-      params: { page, size, sort },
+      params: { name: category, page, size, sort },
     }
   );
 
