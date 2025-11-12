@@ -183,7 +183,6 @@ export const ProductNewPage = () => {
                   errors.price ? 'border-danger' : 'border-gray-300'
                 }`}
               />
-              <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500">원</span>
             </div>
             {errors.price && <p className="text-sm text-danger mt-2">{errors.price}</p>}
           </div>

@@ -25,6 +25,8 @@ export const ChatListPage = () => {
   const [messageError, setMessageError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
+
   // 로그인 체크
   useEffect(() => {
     if (!isLoggedIn) {
@@ -247,6 +249,10 @@ export const ChatListPage = () => {
               ) : (
                 filteredRooms.map((room) => {
                   const otherUser = room.iAmBuyer ? room.seller : room.buyer;
+                  const postImageUrl = room.postImage
+                    ? (room.postImage.startsWith('http') ? room.postImage : `${IMAGE_BASE_URL}${room.postImage}`)
+                    : null;
+
                   return (
                     <button
                       key={room.roomId}
@@ -255,7 +261,21 @@ export const ChatListPage = () => {
                         selectedRoom?.roomId === room.roomId ? 'bg-gray-50' : ''
                       }`}
                     >
-                      <UserProfile user={otherUser} size="md" showInfo={false} />
+                      {/* 물건 사진 */}
+                      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100">
+                        {postImageUrl ? (
+                          <img
+                            src={postImageUrl}
+                            alt={room.postTitle || '상품'}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
+                            이미지 없음
+                          </div>
+                        )}
+                      </div>
+
                       <div className="flex-1 text-left">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium text-gray-900">
