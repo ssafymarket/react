@@ -21,6 +21,7 @@ export const Router = () => {
 
         {/* Product Routes - 중요: /products/new를 /products/:id보다 먼저! */}
         <Route path="/products/new" element={<PrivateRoute><ProductNewPage /></PrivateRoute>} />
+        <Route path="/products/:id/edit" element={<PrivateRoute><ProductNewPage /></PrivateRoute>} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
 
         {/* Private Routes */}
