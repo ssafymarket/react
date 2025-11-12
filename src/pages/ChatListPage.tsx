@@ -7,7 +7,6 @@ import { useAuthStore } from '@/store/authStore';
 import websocketService from '@/services/websocket.service';
 import { getChatRooms, getMessages, markAsRead } from '@/api/chat/chat.api';
 import type { ChatRoom, ChatMessage } from '@/types/chat';
-import type { StompSubscription } from '@stomp/stompjs';
 import iconSearch from '@/assets/icon_search.svg';
 import iconPicture from '@/assets/icon_picture.svg';
 
@@ -64,26 +63,28 @@ export const ChatListPage = () => {
     };
   }, [isLoggedIn]);
 
-  // URL 파라미터로 채팅방 자동 선택
+  // URL 파라미터로 채팅방 자동 선택 (최초 1회만)
   useEffect(() => {
     const roomId = searchParams.get('roomId');
-    if (roomId && chatRooms.length > 0) {
+    if (roomId && chatRooms.length > 0 && !selectedRoom) {
       const room = chatRooms.find((r) => r.roomId === Number(roomId));
       if (room) {
         setSelectedRoom(room);
       }
     }
-  }, [searchParams, chatRooms]);
+  }, [searchParams, chatRooms, selectedRoom]);
 
-  // 선택된 채팅방 메시지 로드
+  // 선택된 채팅방 메시지 로드 (채팅방 변경 시에만)
   useEffect(() => {
     if (!selectedRoom) return;
+
+    const roomId = selectedRoom.roomId;
 
     const loadMessages = async () => {
       setIsLoadingMessages(true);
       setMessageError(null);
       try {
-        const msgs = await getMessages(selectedRoom.roomId);
+        const msgs = await getMessages(roomId);
         // sentAt 기준 오름차순 정렬 (오래된 메시지 → 최신 메시지)
         const sorted = msgs.sort((a, b) =>
           new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
@@ -98,40 +99,42 @@ export const ChatListPage = () => {
     };
 
     loadMessages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRoom?.roomId]);
 
-    // WebSocket 구독을 위한 변수
-    let subscription: StompSubscription | null = null;
+  // WebSocket 구독 (채팅방 선택 & 연결 완료 시)
+  useEffect(() => {
+    if (!selectedRoom || !connected) return;
+
+    const roomId = selectedRoom.roomId;
 
     // WebSocket 구독
-    if (connected) {
-      subscription = websocketService.subscribeToRoom(selectedRoom.roomId, (newMessage: ChatMessage) => {
-        console.log('새 메시지 수신:', newMessage);
-        // 중복 메시지 방지
-        setMessages((prev) => {
-          if (prev.some(msg => msg.messageId === newMessage.messageId)) {
-            return prev;
-          }
-          return [...prev, newMessage];
-        });
-
-        // 채팅방 목록 갱신
-        queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+    websocketService.subscribeToRoom(roomId, (newMessage: ChatMessage) => {
+      console.log('새 메시지 수신:', newMessage);
+      // 중복 메시지 방지
+      setMessages((prev) => {
+        if (prev.some(msg => msg.messageId === newMessage.messageId)) {
+          return prev;
+        }
+        return [...prev, newMessage];
       });
 
-      // 입장 메시지 전송
-      websocketService.enterRoom(selectedRoom.roomId);
+      // 채팅방 목록 갱신
+      queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+    });
 
-      // 읽음 처리
-      markAsRead(selectedRoom.roomId).catch(console.error);
-    }
+    // 입장 메시지 전송
+    websocketService.enterRoom(roomId);
 
-    // cleanup 함수 항상 반환
+    // 읽음 처리
+    markAsRead(roomId).catch(console.error);
+
+    // cleanup 함수
     return () => {
-      if (subscription) {
-        websocketService.unsubscribeFromRoom(selectedRoom.roomId);
-      }
+      websocketService.unsubscribeFromRoom(roomId);
     };
-  }, [selectedRoom, connected, queryClient]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedRoom?.roomId, connected]);
 
   // 메시지 스크롤
   useEffect(() => {

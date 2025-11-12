@@ -24,6 +24,8 @@ export const HomePage = () => {
   const [selectedSort, setSelectedSort] = useState('latest');
   const [searchKeyword, setSearchKeyword] = useState('');
 
+  const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
+
   // URL 파라미터에서 검색어 가져오기
   useEffect(() => {
     const keyword = searchParams.get('search');
@@ -66,7 +68,7 @@ export const HomePage = () => {
       const postsWithFullUrls = response.posts.map(post => ({
         ...post,
         images: post.images.map((url: string) =>
-          url.startsWith('http') ? url : `http://k13d201.p.ssafy.io:8083/${url}`
+          url.startsWith('http') ? url : `${IMAGE_BASE_URL}${url}`
         )
       }));
 

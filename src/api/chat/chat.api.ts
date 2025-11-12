@@ -169,6 +169,11 @@ export const getUnreadCount = async (roomId: number): Promise<number> => {
  * 전체 읽지 않은 메시지 수 조회
  */
 export const getTotalUnreadCount = async (): Promise<number> => {
-  const response = await client.get<{ count: number }>('/chat/unread-count');
-  return response.data.count;
+  try {
+    const response = await client.get<{ count: number }>('/chat/unread-count');
+    return response.data.count || 0;
+  } catch (error) {
+    console.error('읽지 않은 메시지 수 조회 실패:', error);
+    return 0;
+  }
 };

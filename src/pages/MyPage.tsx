@@ -18,6 +18,8 @@ export const MyPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
+
   useEffect(() => {
     if (!user) {
       navigate('/login');
@@ -44,7 +46,7 @@ export const MyPage = () => {
           const postsWithFullUrls = sellingResponse.posts.map(post => ({
             ...post,
             images: post.images.map((url: string) =>
-              url.startsWith('http') ? url : `http://k13d201.p.ssafy.io:8083/${url}`
+              url.startsWith('http') ? url : `${IMAGE_BASE_URL}${url}`
             )
           }));
           setSellingProducts(postsWithFullUrls);
@@ -57,7 +59,7 @@ export const MyPage = () => {
             post: {
               ...transaction.post,
               images: transaction.post.images.map((url: string) =>
-                url.startsWith('http') ? url : `http://k13d201.p.ssafy.io:8083/${url}`
+                url.startsWith('http') ? url : `${IMAGE_BASE_URL}${url}`
               )
             }
           }));

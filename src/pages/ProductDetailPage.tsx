@@ -20,6 +20,8 @@ export const ProductDetailPage = () => {
   const [likeCount, setLikeCount] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
+
   // 상품 정보 로드
   useEffect(() => {
     const fetchProduct = async () => {
@@ -39,7 +41,7 @@ export const ProductDetailPage = () => {
               ...img,
               imageUrl: img.imageUrl.startsWith('http')
                 ? img.imageUrl
-                : `http://k13d201.p.ssafy.io:8083/${img.imageUrl}`
+                : `${IMAGE_BASE_URL}${img.imageUrl}`
             }))
           };
           setProduct(productWithFullUrls);

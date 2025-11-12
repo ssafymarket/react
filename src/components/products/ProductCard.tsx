@@ -8,6 +8,8 @@ interface ProductCardProps {
 }
 
 export const ProductCard = ({ product }: ProductCardProps) => {
+  const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
+
   const statusText = {
     '판매중': '판매중',
     '판매완료': '판매완료',
@@ -27,7 +29,7 @@ export const ProductCard = ({ product }: ProductCardProps) => {
       <div className="aspect-square bg-gray-100 overflow-hidden">
         {product.images && product.images.length > 0 ? (
           <img
-            src={product.images[0]}
+            src={product.images[0].startsWith('http') ? product.images[0] : `${IMAGE_BASE_URL}${product.images[0]}`}
             alt={product.title}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
           />
