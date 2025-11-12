@@ -181,7 +181,7 @@ export const ProductDetailPage = () => {
   if (loading) {
     return (
       <Layout>
-        <div className="max-w-7xl mx-auto px-20 py-8">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-20 py-8">
           <div className="flex justify-center items-center py-20">
             <div className="text-gray-500">로딩 중...</div>
           </div>
@@ -194,7 +194,7 @@ export const ProductDetailPage = () => {
   if (error || !product) {
     return (
       <Layout>
-        <div className="max-w-7xl mx-auto px-20 py-8">
+        <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-20 py-8">
           <div className="flex flex-col justify-center items-center py-20">
             <div className="text-danger mb-4">{error || '상품을 찾을 수 없습니다.'}</div>
             <button
@@ -211,16 +211,16 @@ export const ProductDetailPage = () => {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-20 py-8">
+      <div className="max-w-7xl mx-auto px-4 md:px-8 lg:px-20 py-4 md:py-8">
         {/* 뒤로가기 버튼 */}
         <button
           onClick={() => navigate(-1)}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
+          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 md:mb-6"
         >
           ← 뒤로가기
         </button>
 
-        <div className="grid grid-cols-2 gap-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-12">
           {/* 왼쪽: 이미지 */}
           <div className="space-y-4">
             {/* 메인 이미지 */}
@@ -246,7 +246,7 @@ export const ProductDetailPage = () => {
 
             {/* 썸네일 이미지들 */}
             {product.images && product.images.length > 1 && (
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
                 {product.images.map((image, index) => (
                   <div
                     key={image.imageId}
@@ -291,10 +291,10 @@ export const ProductDetailPage = () => {
             </div>
 
             {/* 제목 */}
-            <h1 className="text-2xl font-bold text-gray-900 mb-4">{product.title}</h1>
+            <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">{product.title}</h1>
 
             {/* 가격 */}
-            <p className="text-3xl font-bold text-primary mb-6">{product.price.toLocaleString()}원</p>
+            <p className="text-2xl md:text-3xl font-bold text-primary mb-6">{product.price.toLocaleString()}원</p>
 
             {/* 카테고리 및 등록일 */}
             <div className="mb-6">

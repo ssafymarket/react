@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { ProductCard } from '@/components/products/ProductCard';
+import { ProductListItem } from '@/components/products/ProductListItem';
 import { Pagination } from '@/components/common/Pagination';
 import { getPosts, getPostsByCategory, searchPosts } from '@/api/post';
 import { CATEGORIES, SORT_OPTIONS, PAGINATION } from '@/utils/constants';
@@ -117,23 +118,23 @@ export const HomePage = () => {
 
   return (
     <Layout>
-      <div className="max-w-content mx-auto px-20 py-8">
+      <div className="max-w-content mx-auto px-4 md:px-8 lg:px-20 py-8">
         {/* 헤더 */}
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900">
             {searchKeyword ? `"${searchKeyword}" 검색 결과` : selectedCategory}
           </h2>
-          <p className="text-gray-600 mt-1">총 {totalItems.toLocaleString()}개의 상품</p>
+          <p className="text-sm md:text-base text-gray-600 mt-1">총 {totalItems.toLocaleString()}개의 상품</p>
         </div>
 
         {/* 카테고리 탭 */}
         {!searchKeyword && (
-          <div className="flex gap-3 mb-6 overflow-x-auto pb-2">
+          <div className="flex gap-2 md:gap-3 mb-6 overflow-x-auto pb-2 scrollbar-hide">
             {CATEGORIES.map((category) => (
               <button
                 key={category}
                 onClick={() => handleCategoryChange(category)}
-                className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-colors ${
+                className={`px-3 md:px-4 py-2 rounded-lg text-sm md:text-base font-medium whitespace-nowrap transition-colors ${
                   selectedCategory === category
                     ? 'bg-primary text-white'
                     : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
@@ -150,7 +151,7 @@ export const HomePage = () => {
           <select
             value={selectedSort}
             onChange={(e) => handleSortChange(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+            className="px-3 md:px-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -174,13 +175,13 @@ export const HomePage = () => {
           </div>
         )}
 
-        {/* 상품 그리드 */}
+        {/* 상품 목록 */}
         {!loading && !error && (
           <>
             {products.length === 0 ? (
               <div className="flex flex-col justify-center items-center py-20">
                 <svg
-                  className="w-20 h-20 text-gray-300 mb-4"
+                  className="w-16 md:w-20 h-16 md:h-20 text-gray-300 mb-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -192,14 +193,24 @@ export const HomePage = () => {
                     d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
                   />
                 </svg>
-                <p className="text-gray-500 text-lg">등록된 상품이 없습니다.</p>
+                <p className="text-gray-500 text-base md:text-lg">등록된 상품이 없습니다.</p>
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-6">
-                {products.map((product) => (
-                  <ProductCard key={product.postId} product={product} />
-                ))}
-              </div>
+              <>
+                {/* 모바일: 리스트형 */}
+                <div className="lg:hidden bg-white rounded-lg border border-gray-200 overflow-hidden">
+                  {products.map((product) => (
+                    <ProductListItem key={product.postId} product={product} />
+                  ))}
+                </div>
+
+                {/* 데스크탑: 그리드형 */}
+                <div className="hidden lg:grid lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                  {products.map((product) => (
+                    <ProductCard key={product.postId} product={product} />
+                  ))}
+                </div>
+              </>
             )}
 
             {/* 페이지네이션 */}

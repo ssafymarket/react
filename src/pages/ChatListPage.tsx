@@ -27,6 +27,7 @@ export const ChatListPage = () => {
   const [connected, setConnected] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
+  const [showRoomList, setShowRoomList] = useState(true); // 모바일: 목록 표시 여부
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
@@ -272,7 +273,13 @@ export const ChatListPage = () => {
   // 채팅방 선택
   const handleSelectRoom = (room: ChatRoom) => {
     setSelectedRoom(room);
+    setShowRoomList(false); // 모바일: 대화 화면으로 전환
     // 메시지는 useEffect에서 자동으로 로드되므로 초기화하지 않음
+  };
+
+  // 뒤로가기 (모바일)
+  const handleBackToList = () => {
+    setShowRoomList(true); // 목록으로 돌아가기
   };
 
   // 검색 필터 (판매자 기준)
@@ -320,10 +327,10 @@ export const ChatListPage = () => {
 
   return (
     <Layout>
-      <div className="max-w-7xl mx-auto px-20 py-8">
-        <div className="grid grid-cols-[320px_1fr] gap-0 h-[calc(100vh-120px)] bg-white rounded-2xl overflow-hidden border border-gray-200">
-          {/* 왼쪽: 채팅 목록 */}
-          <aside className="border-r border-gray-200 flex flex-col h-full overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 md:px-20 py-4 md:py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-0 h-[calc(100vh-120px)] md:h-[calc(100vh-120px)] bg-white rounded-2xl overflow-hidden border border-gray-200">
+          {/* 왼쪽: 채팅 목록 (데스크탑 항상 표시, 모바일 조건부) */}
+          <aside className={`${showRoomList ? 'block' : 'hidden'} lg:block border-r border-gray-200 flex flex-col h-full overflow-hidden`}>
             {/* 헤더 */}
             <div className="p-6 border-b border-gray-200">
               <div className="flex items-center justify-between mb-4">
@@ -409,13 +416,33 @@ export const ChatListPage = () => {
             </div>
           </aside>
 
-          {/* 오른쪽: 채팅 화면 */}
-          <main className="flex flex-col h-full overflow-hidden">
+          {/* 오른쪽: 채팅 화면 (데스크탑 항상 표시, 모바일 조건부) */}
+          <main className={`${!showRoomList ? 'block' : 'hidden'} lg:block flex flex-col h-full overflow-hidden`}>
             {selectedRoom ? (
               <>
                 {/* 채팅 헤더 */}
                 <header className="p-4 border-b border-gray-200 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
+                  {/* 모바일: 뒤로가기 버튼 */}
+                  <button
+                    onClick={handleBackToList}
+                    className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors mr-2"
+                  >
+                    <svg
+                      className="w-6 h-6 text-gray-700"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 19l-7-7 7-7"
+                      />
+                    </svg>
+                  </button>
+
+                  <div className="flex items-center gap-3 flex-1">
                     <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
                       {selectedRoom.postImage ? (
                         <img

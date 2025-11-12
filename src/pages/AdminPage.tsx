@@ -36,7 +36,7 @@ export const AdminPage = () => {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto px-20 py-12">
+      <div className="max-w-4xl mx-auto px-4 md:px-8 lg:px-20 py-12">
         {/* 페이지 제목 */}
         <div className="flex items-center justify-center gap-3 mb-16">
           <img src={logo} alt="관리자" className="h-10" />
@@ -53,21 +53,21 @@ export const AdminPage = () => {
             pendingUsers.map((user, index) => (
               <div
                 key={`${user.studentId}-${index}`}
-                className="flex items-center justify-between bg-white rounded-2xl border border-gray-200 p-6"
+                className="flex flex-col md:flex-row items-start md:items-center justify-between bg-white rounded-2xl border border-gray-200 p-4 md:p-6 gap-3"
               >
-                <div className="text-lg text-gray-900">
+                <div className="text-base md:text-lg text-gray-900">
                   {user.name}({user.studentId}) {user.class}
                 </div>
-                <div className="flex gap-3">
+                <div className="flex gap-2 md:gap-3 w-full md:w-auto">
                   <button
                     onClick={() => handleApprove(user.studentId)}
-                    className="px-8 py-3 bg-primary text-white rounded-full font-medium hover:bg-primary-600 transition-colors"
+                    className="flex-1 md:flex-initial px-4 md:px-8 py-2 md:py-3 bg-primary text-white rounded-full font-medium hover:bg-primary-600 transition-colors text-sm md:text-base"
                   >
                     승인
                   </button>
                   <button
                     onClick={() => handleReject(user.studentId)}
-                    className="px-8 py-3 bg-white border border-primary text-primary rounded-full font-medium hover:bg-primary-50 transition-colors"
+                    className="flex-1 md:flex-initial px-4 md:px-8 py-2 md:py-3 bg-white border border-primary text-primary rounded-full font-medium hover:bg-primary-50 transition-colors text-sm md:text-base"
                   >
                     거절
                   </button>

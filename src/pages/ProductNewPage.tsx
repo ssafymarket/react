@@ -185,7 +185,7 @@ export const ProductNewPage = () => {
   if (isLoading) {
     return (
       <Layout>
-        <div className="max-w-4xl mx-auto px-20 py-8">
+        <div className="max-w-4xl mx-auto px-4 md:px-8 lg:px-20 py-8">
           <div className="flex justify-center items-center py-20">
             <div className="text-gray-500">게시글을 불러오는 중...</div>
           </div>
@@ -198,7 +198,7 @@ export const ProductNewPage = () => {
   if (loadError) {
     return (
       <Layout>
-        <div className="max-w-4xl mx-auto px-20 py-8">
+        <div className="max-w-4xl mx-auto px-4 md:px-8 lg:px-20 py-8">
           <div className="flex flex-col justify-center items-center py-20">
             <div className="text-danger mb-4">{loadError}</div>
             <button
@@ -215,7 +215,7 @@ export const ProductNewPage = () => {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto px-20 py-8">
+      <div className="max-w-4xl mx-auto px-4 md:px-8 lg:px-20 py-8">
         {/* 헤더 */}
         <div className="mb-8">
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4">
@@ -238,7 +238,7 @@ export const ProductNewPage = () => {
             {isEditMode ? (
               // 수정 모드: 기존 이미지 표시 (읽기 전용)
               <>
-                <div className="grid grid-cols-4 gap-4 mb-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-4">
                   {existingImageUrls.map((url, index) => (
                     <div key={index} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
                       <img

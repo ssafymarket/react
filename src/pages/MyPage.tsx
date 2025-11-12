@@ -169,7 +169,7 @@ export const MyPage = () => {
 
             {/* 사용자 정보 */}
             <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-8">
-              <div className="grid grid-cols-3 gap-8">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 md:gap-8">
                 <div>
                   <label className="block text-sm text-gray-600 mb-2">학번</label>
                   <p className="text-lg text-gray-900">{user.studentId}</p>

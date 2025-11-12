@@ -4,8 +4,8 @@ import logo from '@/assets/icon_logo.svg';
 export const Footer = () => {
   return (
     <footer className="bg-white border-t border-gray-200">
-      <div className="max-w-content mx-auto px-20 py-12">
-        <div className="grid grid-cols-4 gap-8">
+      <div className="max-w-content mx-auto px-4 md:px-8 lg:px-20 py-8 md:py-12">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
           {/* 싸피마켓 */}
           <div>
             <Link to="/" className="flex items-center gap-2 mb-4">
