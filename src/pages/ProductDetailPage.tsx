@@ -19,6 +19,7 @@ export const ProductDetailPage = () => {
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
 
@@ -67,6 +68,24 @@ export const ProductDetailPage = () => {
 
     fetchProduct();
   }, [id, user]);
+
+  // 드롭다운 외부 클릭 감지
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (isDropdownOpen && !target.closest('.dropdown-container')) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
 
   // 좋아요 토글
   const handleLikeToggle = async () => {
@@ -134,6 +153,11 @@ export const ProductDetailPage = () => {
   // 수정하기
   const handleEdit = () => {
     navigate(`/products/${id}/edit`);
+  };
+
+  // 채팅 목록 보기
+  const handleViewChats = () => {
+    navigate('/chat');
   };
 
   // 삭제하기
@@ -279,15 +303,60 @@ export const ProductDetailPage = () => {
                   <p className="text-sm text-gray-600">학번: {product.writer.studentId}</p>
                 </div>
               </div>
-              <span
-                className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                  product.status === '판매중'
-                    ? 'bg-primary-50 text-primary border border-primary'
-                    : 'bg-gray-100 text-gray-600 border border-gray-300'
-                }`}
-              >
-                {product.status}
-              </span>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
+                    product.status === '판매중'
+                      ? 'bg-primary-50 text-primary border border-primary'
+                      : 'bg-gray-100 text-gray-600 border border-gray-300'
+                  }`}
+                >
+                  {product.status}
+                </span>
+                {/* 삼점 드롭다운 메뉴 (작성자만 표시) */}
+                {isAuthor && (
+                  <div className="relative dropdown-container">
+                    <button
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                      aria-label="메뉴"
+                    >
+                      <svg
+                        className="w-6 h-6 text-gray-600"
+                        fill="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle cx="12" cy="5" r="2" />
+                        <circle cx="12" cy="12" r="2" />
+                        <circle cx="12" cy="19" r="2" />
+                      </svg>
+                    </button>
+                    {/* 드롭다운 메뉴 */}
+                    {isDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                        <button
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            handleEdit();
+                          }}
+                          className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-t-lg transition-colors"
+                        >
+                          수정하기
+                        </button>
+                        <button
+                          onClick={() => {
+                            setIsDropdownOpen(false);
+                            handleDelete();
+                          }}
+                          className="w-full px-4 py-3 text-left text-sm text-danger hover:bg-red-50 rounded-b-lg transition-colors"
+                        >
+                          삭제하기
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* 제목 */}
@@ -323,45 +392,35 @@ export const ProductDetailPage = () => {
             </div>
 
             {/* 버튼 영역 */}
-            <div className="flex gap-3">
-              {isAuthor ? (
-                // 작성자인 경우
-                <>
-                  <button
-                    onClick={handleEdit}
-                    className="flex-1 px-6 py-3 border border-gray-300 rounded-xl font-medium hover:bg-gray-50 transition-colors"
-                  >
-                    수정하기
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    className="flex-1 px-6 py-3 border border-danger text-danger rounded-xl font-medium hover:bg-red-50 transition-colors"
-                  >
-                    삭제하기
-                  </button>
-                </>
-              ) : (
-                // 작성자가 아닌 경우
-                <>
-                  <button
-                    onClick={handleLikeToggle}
-                    className={`px-6 py-3 border rounded-xl font-medium transition-colors flex items-center justify-center ${
-                      isLiked
-                        ? 'bg-red-50 border-red-500 text-red-500'
-                        : 'border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    <img src={iconHeart} alt="좋아요" className="w-6 h-6" />
-                  </button>
-                  <button
-                    onClick={handleChat}
-                    className="flex-1 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary-600 transition-colors"
-                  >
-                    채팅하기
-                  </button>
-                </>
-              )}
-            </div>
+            {isAuthor ? (
+              // 작성자인 경우: 채팅 목록 보기 버튼만
+              <button
+                onClick={handleViewChats}
+                className="w-full px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary-600 transition-colors"
+              >
+                채팅 목록 보기
+              </button>
+            ) : (
+              // 작성자가 아닌 경우: 좋아요 + 채팅하기
+              <div className="flex gap-3">
+                <button
+                  onClick={handleLikeToggle}
+                  className={`px-6 py-3 border rounded-xl font-medium transition-colors flex items-center justify-center ${
+                    isLiked
+                      ? 'bg-red-50 border-red-500 text-red-500'
+                      : 'border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  <img src={iconHeart} alt="좋아요" className="w-6 h-6" />
+                </button>
+                <button
+                  onClick={handleChat}
+                  className="flex-1 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary-600 transition-colors"
+                >
+                  채팅하기
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>

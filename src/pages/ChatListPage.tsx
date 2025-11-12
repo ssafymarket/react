@@ -8,6 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import websocketService from '@/services/websocket.service';
 import { getChatRooms, getChatRoom, getMessages, markAsRead } from '@/api/chat/chat.api';
+import { completeSale } from '@/api/post/post.api';
 import type { ChatRoom, ChatMessage } from '@/types/chat';
 import iconSearch from '@/assets/icon_search.svg';
 import iconPicture from '@/assets/icon_picture.svg';
@@ -28,6 +29,7 @@ export const ChatListPage = () => {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
   const [showRoomList, setShowRoomList] = useState(true); // 모바일: 목록 표시 여부
+  const [isCompleted, setIsCompleted] = useState(false); // 거래 완료 상태
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
@@ -277,6 +279,29 @@ export const ChatListPage = () => {
     // 메시지는 useEffect에서 자동으로 로드되므로 초기화하지 않음
   };
 
+  // 거래 완료
+  const handleCompleteSale = async () => {
+    if (!selectedRoom) return;
+
+    if (!confirm(`${selectedRoom.buyer.name}님과의 거래를 완료하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      const response = await completeSale(selectedRoom.postId, selectedRoom.buyerId);
+      if (response.success) {
+        setIsCompleted(true);
+        alert('거래가 완료되었습니다!');
+        queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+      } else {
+        alert(response.message || '거래 완료에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('거래 완료 실패:', error);
+      alert('거래 완료 중 오류가 발생했습니다.');
+    }
+  };
+
   // 뒤로가기 (모바일)
   const handleBackToList = () => {
     setShowRoomList(true); // 목록으로 돌아가기
@@ -466,9 +491,19 @@ export const ChatListPage = () => {
                       <p className="text-sm text-gray-600">{selectedRoom.postTitle}</p>
                     </div>
                   </div>
-                  <button className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors">
-                    거래완료하기
-                  </button>
+                  {user?.studentId === selectedRoom.sellerId && (
+                    <button
+                      onClick={handleCompleteSale}
+                      disabled={isCompleted}
+                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        isCompleted
+                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                          : 'bg-primary text-white hover:bg-primary-600'
+                      }`}
+                    >
+                      {isCompleted ? '거래완료' : '거래완료하기'}
+                    </button>
+                  )}
                 </header>
 
                 {/* 메시지 영역 */}
