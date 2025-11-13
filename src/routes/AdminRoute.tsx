@@ -6,7 +6,12 @@ interface AdminRouteProps {
 }
 
 export const AdminRoute = ({ children }: AdminRouteProps) => {
-  const { isLoggedIn, user } = useAuthStore();
+  const { isLoggedIn, user, isHydrated } = useAuthStore();
+
+  // localStorage 복원이 완료될 때까지 대기
+  if (!isHydrated) {
+    return null;
+  }
 
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;

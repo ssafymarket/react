@@ -89,11 +89,11 @@ export const Header = () => {
                       </button>
                     </Link>
 
-                    {/* 관리 버튼 (관리자만) */}
+                    {/* 승인관리 버튼 (관리자만) */}
                     {isAdmin && (
                       <Link to="/admin">
                         <Button variant="secondary" size="md">
-                          관리
+                          승인관리
                         </Button>
                       </Link>
                     )}

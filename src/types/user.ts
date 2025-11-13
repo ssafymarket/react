@@ -44,3 +44,35 @@ export type UpdateProfileResponse = {
   success: boolean;
   message: string;
 }
+
+// 승인 대기 사용자 타입
+export type PendingUser = {
+  studentId: string;
+  name: string;
+  className: string;
+  password: string;
+  approve: number;  // 0: 대기, 1: 승인
+}
+
+// 회원 승인 목록 응답
+export type PendingUsersResponse = {
+  success: boolean;
+  list: PendingUser[];
+}
+
+// 회원 승인 요청
+export type ApproveUserRequest = {
+  studentId: string;
+}
+
+// 회원 승인 응답
+export type ApproveUserResponse = {
+  success: boolean;
+  user: {
+    studentId: string;
+    name: string;
+    className: string;
+    password: string;
+    role: 'ROLE_USER' | 'ROLE_ADMIN';
+  };
+}
