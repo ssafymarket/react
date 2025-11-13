@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import websocketService from '@/services/websocket.service';
 import { useChatStore } from '@/store/chatStore';
@@ -24,7 +24,7 @@ interface WebSocketProviderProps {
 }
 
 export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
-  const { isLoggedIn, user } = useAuthStore();
+  const { isLoggedIn } = useAuthStore();
   const { setTotalUnreadCount } = useChatStore();
   const queryClient = useQueryClient();
   const [connected, setConnected] = useState(false);
@@ -54,17 +54,18 @@ export const WebSocketProvider = ({ children }: WebSocketProviderProps) => {
         websocketService.subscribeToNotifications((notification) => {
           const isActiveRoom = notification.roomId === activeRoomId;
 
-          if (isActiveRoom) {
-            queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-            return;
-          }
-
+          // totalUnreadCount는 항상 업데이트 (현재 채팅방이든 아니든)
           if (notification.totalUnreadCount !== undefined) {
             setTotalUnreadCount(notification.totalUnreadCount);
             queryClient.setQueryData(['totalUnreadCount'], notification.totalUnreadCount);
           }
 
           queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+
+          // 현재 보고 있는 채팅방의 알림이면 여기서 종료
+          if (isActiveRoom) {
+            return;
+          }
         });
 
         // 읽음 알림 구독

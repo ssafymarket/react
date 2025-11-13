@@ -8,10 +8,9 @@ import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import websocketService from '@/services/websocket.service';
-import { getChatRooms, getChatRoom, getMessages } from '@/api/chat/chat.api';
+import { getChatRooms, getChatRoom, getMessages, leaveChatRoom } from '@/api/chat/chat.api';
 import { completeSale, getPostById } from '@/api/post';
 import type { ChatRoom, ChatMessage } from '@/types/chat';
-import iconSearch from '@/assets/icon_search.svg';
 import iconPicture from '@/assets/icon_picture.svg';
 import iconLogo from '@/assets/icon_logo.svg';
 
@@ -24,13 +23,19 @@ export const ChatListPage = () => {
   const { setActiveRoomId } = useWebSocket();
 
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connected, setConnected] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
-  const [showRoomList, setShowRoomList] = useState(true); // 모바일: 목록 표시 여부
+
+  // 모바일: 목록 표시 여부 - roomId 파라미터가 있고 모바일이면 채팅방부터 보여주기
+  const [showRoomList, setShowRoomList] = useState(() => {
+    const roomIdParam = searchParams.get('roomId');
+    const isMobile = window.innerWidth < 1024; // lg breakpoint
+    return !(isMobile && roomIdParam);
+  });
   const [postStatus, setPostStatus] = useState<'판매중' | '판매완료'>('판매중'); // 게시글 상태
   const [isLoadingPostStatus, setIsLoadingPostStatus] = useState(false); // 게시글 상태 로딩
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -295,6 +300,35 @@ export const ChatListPage = () => {
     }
   };
 
+  // 채팅방 나가기
+  const handleLeaveChatRoom = async () => {
+    if (!selectedRoom) return;
+
+    if (!confirm('채팅방을 나가시겠습니까?\n(채팅 내역은 유지됩니다)')) {
+      return;
+    }
+
+    try {
+      await leaveChatRoom(selectedRoom.roomId);
+      alert('채팅방에서 나갔습니다.');
+
+      // WebSocket 구독 취소
+      websocketService.unsubscribeFromRoom(selectedRoom.roomId);
+      setActiveRoomId(null);
+
+      // 상태 초기화
+      setSelectedRoom(null);
+      setMessages([]);
+      setShowRoomList(true);
+
+      // 채팅방 목록 새로고침
+      queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+    } catch (error) {
+      console.error('채팅방 나가기 실패:', error);
+      alert('채팅방 나가기 중 오류가 발생했습니다.');
+    }
+  };
+
   // 뒤로가기 (모바일)
   const handleBackToList = () => {
     setShowRoomList(true); // 목록으로 돌아가기
@@ -313,8 +347,12 @@ export const ChatListPage = () => {
   });
 
   // 시간 포맷팅
-  const formatTime = (dateString: string) => {
+  const formatTime = (dateString: string | null) => {
+    if (!dateString) return '채팅을 시작해보세요';
+
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '채팅을 시작해보세요';
+
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
@@ -478,23 +516,40 @@ export const ChatListPage = () => {
                       <p className="text-xs text-gray-600 truncate">{selectedRoom.postTitle}</p>
                     </div>
                   </div>
-                  {user?.studentId === selectedRoom.sellerId && (
-                    <button
-                      onClick={handleCompleteSale}
-                      disabled={isLoadingPostStatus || postStatus === '판매완료'}
-                      className={`px-2 py-2 w-[100px] rounded-lg text-sm font-medium transition-colors ${
-                        isLoadingPostStatus || postStatus === '판매완료'
-                          ? 'bg-gray-200 text-gray-400 cursor-default'
-                          : 'bg-primary text-white hover:bg-primary-600'
-                      }`}
-                    >
-                      {isLoadingPostStatus
-                        ? '불러오는 중..'
-                        : postStatus === '판매완료'
-                        ? '거래완료'
-                        : '거래완료하기'}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {user?.studentId === selectedRoom.sellerId ? (
+                      <>
+                        <button
+                          onClick={handleCompleteSale}
+                          disabled={isLoadingPostStatus || postStatus === '판매완료'}
+                          className={`px-2 py-2 w-[100px] rounded-lg text-sm font-medium transition-colors ${
+                            isLoadingPostStatus || postStatus === '판매완료'
+                              ? 'bg-gray-200 text-gray-400 cursor-default'
+                              : 'bg-primary text-white hover:bg-primary-600'
+                          }`}
+                        >
+                          {isLoadingPostStatus
+                            ? '불러오는 중..'
+                            : postStatus === '판매완료'
+                            ? '거래완료'
+                            : '거래완료하기'}
+                        </button>
+                        <button
+                          onClick={handleLeaveChatRoom}
+                          className="px-2 py-2 w-[80px] rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          나가기
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={handleLeaveChatRoom}
+                        className="px-2 py-2 w-[80px] rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        나가기
+                      </button>
+                    )}
+                  </div>
                 </header>
 
                 {/* 메시지 영역 */}

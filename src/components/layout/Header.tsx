@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Button, Badge } from '../common';
 import { SearchBar } from './SearchBar';
 import { useAuthStore } from '@/store/authStore';
@@ -12,6 +12,7 @@ import iconChat from '@/assets/icon_chat.svg';
 import iconPerson from '@/assets/icon_person.svg';
 
 export const Header = () => {
+  const queryClient = useQueryClient();
   const { isLoggedIn, user } = useAuthStore();
   const { totalUnreadCount, setTotalUnreadCount } = useChatStore();
 
@@ -22,6 +23,7 @@ export const Header = () => {
     queryKey: ['totalUnreadCount'],
     queryFn: getTotalUnreadCount,
     enabled: isLoggedIn,
+    staleTime: 0, // 항상 최신 데이터로 간주
     refetchInterval: 30000, // 30초마다 갱신 (WebSocket 끊겼을 때 백업)
     refetchOnWindowFocus: true, // 창 포커스 시 갱신
   });
@@ -32,6 +34,11 @@ export const Header = () => {
       setTotalUnreadCount(polledUnreadCount);
     }
   }, [polledUnreadCount, setTotalUnreadCount]);
+
+  // Store 값이 변경되면 React Query 캐시도 업데이트 (양방향 동기화)
+  useEffect(() => {
+    queryClient.setQueryData(['totalUnreadCount'], totalUnreadCount);
+  }, [totalUnreadCount, queryClient]);
 
   // WebSocket 구독은 WebSocketProvider에서 전역 관리
   // Header는 useChatStore의 totalUnreadCount를 실시간으로 표시

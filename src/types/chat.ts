@@ -8,7 +8,7 @@ export type ChatRoom = {
   buyer: User;
   seller: User;
   lastMessage: string | null;
-  lastMessageTime: string;
+  lastMessageTime: string | null;
   createdAt: string;
   // UI에서 사용하는 추가 필드
   postTitle?: string;

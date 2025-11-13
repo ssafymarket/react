@@ -6,6 +6,7 @@ import type { ProductDetail } from '@/types/product';
 import { getPostById, deletePost, addLike, removeLike, checkLikeStatus } from '@/api/post';
 import { createOrGetChatRoom } from '@/api/chat';
 import iconHeart from '@/assets/icon_heart.svg';
+import iconHeartFilled from '@/assets/icon_heart_filled.svg';
 import iconChat from '@/assets/icon_chat.svg';
 import iconCarrot from '@/assets/icon_carrot.svg';
 
@@ -390,7 +391,7 @@ export const ProductDetailPage = () => {
             {/* 통계 정보 */}
             <div className="flex items-center gap-4 text-sm text-gray-600 mb-6">
               <span className="flex items-center gap-1">
-                <img src={iconHeart} alt="좋아요" className="w-5 h-5" />
+                <img src={isLiked ? iconHeartFilled : iconHeart} alt="좋아요" className="w-5 h-5" />
                 {likeCount}
               </span>
               <span className="flex items-center gap-1">
@@ -419,11 +420,16 @@ export const ProductDetailPage = () => {
                       : 'border-gray-300 hover:bg-gray-50'
                   }`}
                 >
-                  <img src={iconHeart} alt="좋아요" className="w-6 h-6" />
+                  <img src={isLiked ? iconHeartFilled : iconHeart} alt="좋아요" className="w-6 h-6" />
                 </button>
                 <button
                   onClick={handleChat}
-                  className="flex-1 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary-600 transition-colors"
+                  disabled={product.status === '판매완료'}
+                  className={`flex-1 px-6 py-3 rounded-xl font-medium transition-colors ${
+                    product.status === '판매완료'
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-primary text-white hover:bg-primary-600'
+                  }`}
                 >
                   채팅하기
                 </button>

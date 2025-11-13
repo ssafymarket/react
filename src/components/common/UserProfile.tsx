@@ -16,7 +16,7 @@ export const UserProfile = ({
   className = '',
 }: UserProfileProps) => {
   // 13기/14기에 따라 프로필 이미지 선택
-  const profileImage = user.class === '13기' ? user13th : user14th;
+  const profileImage = user.className === '13기' ? user13th : user14th;
 
   const sizeClasses = {
     sm: 'w-8 h-8',
@@ -38,7 +38,7 @@ export const UserProfile = ({
         <div className="flex flex-col">
           <span className="font-medium text-gray-900">{user.name}</span>
           <span className="text-sm text-gray-600">
-            {user.studentId} · {user.class}
+            {user.studentId} · {user.className}
           </span>
         </div>
       )}
