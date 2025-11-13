@@ -6,7 +6,9 @@ import type { ProductDetail } from '@/types/product';
 import { getPostById, deletePost, addLike, removeLike, checkLikeStatus } from '@/api/post';
 import { createOrGetChatRoom } from '@/api/chat';
 import iconHeart from '@/assets/icon_heart.svg';
+import iconHeartFilled from '@/assets/icon_heart_filled.svg';
 import iconChat from '@/assets/icon_chat.svg';
+import iconCarrot from '@/assets/icon_carrot.svg';
 
 export const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -363,7 +365,14 @@ export const ProductDetailPage = () => {
             <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">{product.title}</h1>
 
             {/* 가격 */}
-            <p className="text-2xl md:text-3xl font-bold text-primary mb-6">{product.price.toLocaleString()}원</p>
+            {product.price === 0 ? (
+              <div className="flex items-center gap-2 mb-6">
+                <p className="text-2xl md:text-3xl font-bold text-primary">나눔</p>
+                <img src={iconCarrot} alt="나눔" className="w-7 h-7" />
+              </div>
+            ) : (
+              <p className="text-2xl md:text-3xl font-bold text-primary mb-6">{product.price.toLocaleString()}원</p>
+            )}
 
             {/* 카테고리 및 등록일 */}
             <div className="mb-6">
@@ -382,7 +391,7 @@ export const ProductDetailPage = () => {
             {/* 통계 정보 */}
             <div className="flex items-center gap-4 text-sm text-gray-600 mb-6">
               <span className="flex items-center gap-1">
-                <img src={iconHeart} alt="좋아요" className="w-5 h-5" />
+                <img src={isLiked ? iconHeartFilled : iconHeart} alt="좋아요" className="w-5 h-5" />
                 {likeCount}
               </span>
               <span className="flex items-center gap-1">
@@ -411,11 +420,16 @@ export const ProductDetailPage = () => {
                       : 'border-gray-300 hover:bg-gray-50'
                   }`}
                 >
-                  <img src={iconHeart} alt="좋아요" className="w-6 h-6" />
+                  <img src={isLiked ? iconHeartFilled : iconHeart} alt="좋아요" className="w-6 h-6" />
                 </button>
                 <button
                   onClick={handleChat}
-                  className="flex-1 px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary-600 transition-colors"
+                  disabled={product.status === '판매완료'}
+                  className={`flex-1 px-6 py-3 rounded-xl font-medium transition-colors ${
+                    product.status === '판매완료'
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-primary text-white hover:bg-primary-600'
+                  }`}
                 >
                   채팅하기
                 </button>

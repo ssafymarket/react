@@ -1,16 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Layout } from '@/components/layout/Layout';
+import { Header } from '@/components/layout/Header';
 import { UserProfile } from '@/components/common/UserProfile';
 import { Badge } from '@/components/common/Badge';
 import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
+import { useWebSocket } from '@/contexts/WebSocketContext';
 import websocketService from '@/services/websocket.service';
-import { getChatRooms, getChatRoom, getMessages, markAsRead } from '@/api/chat/chat.api';
-import { completeSale, getPostById } from '@/api/post/post.api';
+import { getChatRooms, getChatRoom, getMessages, leaveChatRoom } from '@/api/chat/chat.api';
+import { completeSale, getPostById } from '@/api/post';
 import type { ChatRoom, ChatMessage } from '@/types/chat';
-import iconSearch from '@/assets/icon_search.svg';
 import iconPicture from '@/assets/icon_picture.svg';
 import iconLogo from '@/assets/icon_logo.svg';
 
@@ -20,15 +20,22 @@ export const ChatListPage = () => {
   const queryClient = useQueryClient();
   const { user, isLoggedIn } = useAuthStore();
   const { setTotalUnreadCount } = useChatStore();
+  const { setActiveRoomId } = useWebSocket();
 
   const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery] = useState('');
   const [messageInput, setMessageInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connected, setConnected] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
-  const [showRoomList, setShowRoomList] = useState(true); // 모바일: 목록 표시 여부
+
+  // 모바일: 목록 표시 여부 - roomId 파라미터가 있고 모바일이면 채팅방부터 보여주기
+  const [showRoomList, setShowRoomList] = useState(() => {
+    const roomIdParam = searchParams.get('roomId');
+    const isMobile = window.innerWidth < 1024; // lg breakpoint
+    return !(isMobile && roomIdParam);
+  });
   const [postStatus, setPostStatus] = useState<'판매중' | '판매완료'>('판매중'); // 게시글 상태
   const [isLoadingPostStatus, setIsLoadingPostStatus] = useState(false); // 게시글 상태 로딩
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -48,6 +55,8 @@ export const ChatListPage = () => {
     queryKey: ['chatRooms'],
     queryFn: getChatRooms,
     enabled: isLoggedIn,
+    staleTime: 0, // 항상 fresh 상태로 간주하지 않음
+    refetchOnMount: true, // 마운트될 때마다 새로 가져오기
   });
 
   // chatRooms가 업데이트되면 selectedRoom도 동기화
@@ -61,26 +70,19 @@ export const ChatListPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chatRooms]);
 
-  // WebSocket 연결
+  // WebSocket 연결 상태 확인 (WebSocketProvider에서 관리)
   useEffect(() => {
     if (!isLoggedIn) return;
 
-    websocketService.connect(
-      () => {
-        console.log('WebSocket 연결 성공');
-        setConnected(true);
-      },
-      (error) => {
-        console.error('WebSocket 연결 실패:', error);
-        setConnected(false);
-        alert('실시간 채팅 연결에 실패했습니다. 로그인 상태를 확인해주세요.');
-      }
-    );
-
-    return () => {
-      websocketService.disconnect();
-      setConnected(false);
+    const checkConnection = () => {
+      const isConnected = websocketService.isConnected();
+      setConnected(isConnected);
     };
+
+    checkConnection();
+    const timer = setTimeout(checkConnection, 1000);
+
+    return () => clearTimeout(timer);
   }, [isLoggedIn]);
 
   // URL 파라미터로 채팅방 자동 선택 및 로드 (최적화)
@@ -171,66 +173,18 @@ export const ChatListPage = () => {
     loadPostStatus();
   }, [selectedRoom]);
 
-  // 전역 알림 구독 (채팅방 목록 실시간 갱신용)
+  // 전역 알림과 읽음 알림은 WebSocketProvider에서 관리
+  // ChatListPage에서는 채팅방 목록 갱신만 처리
   useEffect(() => {
     if (!connected) return;
 
-    // 전역 알림 구독 - 다른 채팅방에서 메시지가 왔을 때도 목록 갱신
-    websocketService.subscribeToNotifications((notification) => {
-      console.log('🔔 [ChatListPage] 전역 알림 수신:', notification);
-
-      // Header의 totalUnreadCount 업데이트 (Header의 구독을 덮어썼기 때문에 여기서도 처리)
-      if (notification.totalUnreadCount !== undefined) {
-        setTotalUnreadCount(notification.totalUnreadCount);
-        // React Query 캐시도 업데이트
-        queryClient.setQueryData(['totalUnreadCount'], notification.totalUnreadCount);
-      }
-
-      // 채팅방 목록 갱신 (새 메시지로 인한 lastMessage, unreadCount 업데이트)
+    // 채팅방 목록 주기적 갱신 (WebSocket 알림 수신 시 자동으로 갱신됨)
+    const interval = setInterval(() => {
       queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+    }, 60000); // 1분마다 백업 갱신
 
-      // 현재 보고 있는 방이 아닌 다른 방의 메시지인 경우에만 알림 처리
-      if (selectedRoom && notification.roomId === selectedRoom.roomId) {
-        // 현재 보고 있는 방의 메시지는 아래 개별 방 구독에서 처리
-        return;
-      }
-
-      // 다른 방의 메시지 알림 (필요 시 브라우저 알림 등 추가 가능)
-      console.log(`💬 [ChatListPage] 다른 방(${notification.roomId})에서 새 메시지:`, notification.content);
-    });
-
-    return () => {
-      websocketService.unsubscribeFromNotifications();
-    };
-  }, [connected, selectedRoom, queryClient, setTotalUnreadCount]);
-
-  // 읽음 알림 구독
-  useEffect(() => {
-    if (!connected) return;
-
-    // 읽음 알림 구독 - 상대방이 내 메시지를 읽었을 때
-    websocketService.subscribeToReadNotifications((readNotification) => {
-      console.log('✅ [ChatListPage] 읽음 알림 수신:', readNotification);
-
-      // 현재 보고 있는 방의 읽음 알림인 경우, 메시지 읽음 상태 업데이트
-      if (selectedRoom && readNotification.roomId === selectedRoom.roomId) {
-        setMessages((prev) =>
-          prev.map((msg) =>
-            msg.senderId === user?.studentId && !msg.isRead
-              ? { ...msg, isRead: true, readAt: new Date().toISOString() }
-              : msg
-          )
-        );
-      }
-
-      // 채팅방 목록도 갱신 (unreadCount 업데이트)
-      queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
-    });
-
-    return () => {
-      websocketService.unsubscribeFromReadNotifications();
-    };
-  }, [connected, selectedRoom, user?.studentId, queryClient]);
+    return () => clearInterval(interval);
+  }, [connected, queryClient]);
 
   // WebSocket 구독 (채팅방 선택 & 연결 완료 시)
   useEffect(() => {
@@ -240,32 +194,54 @@ export const ChatListPage = () => {
 
     // WebSocket 구독
     websocketService.subscribeToRoom(roomId, (newMessage: ChatMessage) => {
-      console.log('✅ [ChatListPage] 새 메시지 수신:', newMessage);
-
       // 중복 메시지 방지
       setMessages((prev) => {
-        console.log('🔄 [ChatListPage] 현재 메시지 개수:', prev.length);
         if (prev.some(msg => msg.messageId === newMessage.messageId)) {
-          console.log('⚠️ [ChatListPage] 중복 메시지, 무시');
           return prev;
         }
-        console.log('✨ [ChatListPage] 새 메시지 추가');
         return [...prev, newMessage];
       });
+
+      // 상대방 메시지인 경우 즉시 읽음 처리
+      if (newMessage.senderId !== user?.studentId) {
+        websocketService.markAsRead(roomId);
+      }
 
       // 채팅방 목록 갱신
       queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
     });
 
+    // 활성 채팅방 설정
+    setActiveRoomId(roomId);
+
     // 입장 메시지 전송
     websocketService.enterRoom(roomId);
 
-    // 읽음 처리
-    markAsRead(roomId).catch(console.error);
+    // 입장 시 읽음 처리
+    websocketService.markAsRead(roomId);
+
+    // 낙관적 업데이트: 로컬 상태 즉시 갱신
+    if (selectedRoom.unreadCount && selectedRoom.unreadCount > 0) {
+      const currentTotal = useChatStore.getState().totalUnreadCount;
+      setTotalUnreadCount(Math.max(0, currentTotal - selectedRoom.unreadCount));
+
+      queryClient.setQueryData(['chatRooms'], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((room: any) =>
+          room.roomId === roomId ? { ...room, unreadCount: 0 } : room
+        );
+      });
+    }
 
     // cleanup 함수
     return () => {
       websocketService.unsubscribeFromRoom(roomId);
+
+      setTimeout(() => {
+        setActiveRoomId(null);
+        queryClient.invalidateQueries({ queryKey: ['totalUnreadCount'] });
+        queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+      }, 200);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoom?.roomId, connected]);
@@ -324,6 +300,35 @@ export const ChatListPage = () => {
     }
   };
 
+  // 채팅방 나가기
+  const handleLeaveChatRoom = async () => {
+    if (!selectedRoom) return;
+
+    if (!confirm('채팅방을 나가시겠습니까?\n(채팅 내역은 유지됩니다)')) {
+      return;
+    }
+
+    try {
+      await leaveChatRoom(selectedRoom.roomId);
+      alert('채팅방에서 나갔습니다.');
+
+      // WebSocket 구독 취소
+      websocketService.unsubscribeFromRoom(selectedRoom.roomId);
+      setActiveRoomId(null);
+
+      // 상태 초기화
+      setSelectedRoom(null);
+      setMessages([]);
+      setShowRoomList(true);
+
+      // 채팅방 목록 새로고침
+      queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+    } catch (error) {
+      console.error('채팅방 나가기 실패:', error);
+      alert('채팅방 나가기 중 오류가 발생했습니다.');
+    }
+  };
+
   // 뒤로가기 (모바일)
   const handleBackToList = () => {
     setShowRoomList(true); // 목록으로 돌아가기
@@ -331,6 +336,7 @@ export const ChatListPage = () => {
 
   // 검색 필터 (판매자 기준)
   const filteredRooms = chatRooms.filter((room) => {
+    if (!searchQuery) return true; // 검색어가 없으면 모두 표시
     const seller = room.seller;
     const searchLower = searchQuery.toLowerCase();
     return (
@@ -341,8 +347,12 @@ export const ChatListPage = () => {
   });
 
   // 시간 포맷팅
-  const formatTime = (dateString: string) => {
+  const formatTime = (dateString: string | null) => {
+    if (!dateString) return '채팅을 시작해보세요';
+
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '채팅을 시작해보세요';
+
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     const minutes = Math.floor(diff / 60000);
@@ -373,34 +383,27 @@ export const ChatListPage = () => {
   if (!isLoggedIn) return null;
 
   return (
-    <Layout>
-      <div className="max-w-7xl mx-auto px-4 md:px-20 py-4 md:py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-0 h-[calc(100vh-120px)] md:h-[calc(100vh-120px)] bg-white rounded-2xl overflow-hidden border border-gray-200">
+    <div className="h-screen flex flex-col bg-gray-50 overflow-hidden">
+      {/* Header */}
+      <Header />
+
+      {/* 채팅 메인 영역 */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-0 h-full bg-white border-t border-gray-200">
           {/* 왼쪽: 채팅 목록 (데스크탑 항상 표시, 모바일 조건부) */}
-          <aside className={`${showRoomList ? 'block' : 'hidden'} lg:block border-r border-gray-200 flex flex-col h-full overflow-hidden`}>
+          <aside className={`${showRoomList ? 'flex' : 'hidden'} lg:flex border-r border-gray-200 flex-col h-full overflow-hidden`}>
             {/* 헤더 */}
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-bold text-gray-900">메시지</h1>
+            <div className="p-4 border-b border-gray-200 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <h1 className="text-xl font-bold text-gray-900">메시지</h1>
                 <span className={`text-xs px-2 py-1 rounded-full ${connected ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                  {connected ? '🟢 연결됨' : '🔴 끊김'}
+                  {connected ? '연결됨' : '끊김'}
                 </span>
-              </div>
-              {/* 검색창 */}
-              <div className="relative">
-                <img src={iconSearch} alt="" className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5" />
-                <input
-                  type="text"
-                  placeholder="검색"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-gray-100 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                />
               </div>
             </div>
 
             {/* 채팅방 목록 */}
-            <div className="flex-1 overflow-y-auto min-h-0">
+            <div className="flex-1 min-h-0 overflow-y-auto scrollbar-hide">
               {isLoadingRooms ? (
                 <div className="flex items-center justify-center p-8 text-gray-500">
                   로딩 중...
@@ -453,7 +456,7 @@ export const ChatListPage = () => {
                       </div>
 
                       {/* 읽지 않은 메시지 수 표시 */}
-                      {room.unreadCount && room.unreadCount > 0 && (
+                      {room.unreadCount > 0 && (
                         <Badge count={room.unreadCount} className="absolute top-2 right-2" />
                       )}
                     </button>
@@ -464,7 +467,7 @@ export const ChatListPage = () => {
           </aside>
 
           {/* 오른쪽: 채팅 화면 (데스크탑 항상 표시, 모바일 조건부) */}
-          <main className={`${!showRoomList ? 'block' : 'hidden'} lg:block flex flex-col h-full overflow-hidden`}>
+          <main className={`${!showRoomList ? 'flex' : 'hidden'} lg:flex flex-col h-full overflow-hidden`}>
             {selectedRoom ? (
               <>
                 {/* 채팅 헤더 */}
@@ -475,7 +478,7 @@ export const ChatListPage = () => {
                     className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors mr-2"
                   >
                     <svg
-                      className="w-6 h-6 text-gray-700"
+                      className="w-5 h-5 text-gray-700"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -490,7 +493,7 @@ export const ChatListPage = () => {
                   </button>
 
                   <div className="flex items-center gap-3 flex-1">
-                    <div className="w-12 h-12 rounded-lg overflow-hidden bg-gray-100">
+                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                       {selectedRoom.postImage ? (
                         <img
                           src={selectedRoom.postImage.startsWith('http') ? selectedRoom.postImage : `${IMAGE_BASE_URL}${selectedRoom.postImage}`}
@@ -505,41 +508,58 @@ export const ChatListPage = () => {
                         />
                       )}
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-gray-900 text-sm truncate">
                         {selectedRoom.buyer.studentId === user?.studentId ? selectedRoom.seller.name : selectedRoom.buyer.name}
                         ({selectedRoom.buyer.studentId === user?.studentId ? selectedRoom.seller.studentId : selectedRoom.buyer.studentId})
                       </p>
-                      <p className="text-sm text-gray-600">{selectedRoom.postTitle}</p>
+                      <p className="text-xs text-gray-600 truncate">{selectedRoom.postTitle}</p>
                     </div>
                   </div>
-                  {user?.studentId === selectedRoom.sellerId && (
-                    <button
-                      onClick={handleCompleteSale}
-                      disabled={isLoadingPostStatus || postStatus === '판매완료'}
-                      className={`px-2 py-2 w-[100px] rounded-lg text-sm font-medium transition-colors ${
-                        isLoadingPostStatus || postStatus === '판매완료'
-                          ? 'bg-gray-200 text-gray-400 cursor-default'
-                          : 'bg-primary text-white hover:bg-primary-600'
-                      }`}
-                    >
-                      {isLoadingPostStatus
-                        ? '불러오는 중..'
-                        : postStatus === '판매완료'
-                        ? '거래완료'
-                        : '거래완료하기'}
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {user?.studentId === selectedRoom.sellerId ? (
+                      <>
+                        <button
+                          onClick={handleCompleteSale}
+                          disabled={isLoadingPostStatus || postStatus === '판매완료'}
+                          className={`px-2 py-2 w-[100px] rounded-lg text-sm font-medium transition-colors ${
+                            isLoadingPostStatus || postStatus === '판매완료'
+                              ? 'bg-gray-200 text-gray-400 cursor-default'
+                              : 'bg-primary text-white hover:bg-primary-600'
+                          }`}
+                        >
+                          {isLoadingPostStatus
+                            ? '불러오는 중..'
+                            : postStatus === '판매완료'
+                            ? '거래완료'
+                            : '거래완료하기'}
+                        </button>
+                        <button
+                          onClick={handleLeaveChatRoom}
+                          className="px-2 py-2 w-[80px] rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                        >
+                          나가기
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={handleLeaveChatRoom}
+                        className="px-2 py-2 w-[80px] rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        나가기
+                      </button>
+                    )}
+                  </div>
                 </header>
 
                 {/* 메시지 영역 */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                <div className="flex-1 min-h-0 overflow-y-auto bg-gray-50 p-4">
                   {isLoadingMessages ? (
-                    <div className="flex items-center justify-center h-full text-gray-500">
+                    <div className="h-full flex items-center justify-center text-gray-500">
                       메시지를 불러오는 중...
                     </div>
                   ) : messageError ? (
-                    <div className="flex flex-col items-center justify-center h-full text-red-500">
+                    <div className="h-full flex flex-col items-center justify-center text-red-500">
                       <p>{messageError}</p>
                       <button
                         onClick={() => window.location.reload()}
@@ -549,71 +569,73 @@ export const ChatListPage = () => {
                       </button>
                     </div>
                   ) : messages.length === 0 ? (
-                    <div className="flex items-center justify-center h-full text-gray-500">
+                    <div className="h-full flex items-center justify-center text-gray-500">
                       메시지가 없습니다. 첫 메시지를 보내보세요!
                     </div>
                   ) : (
-                    messages
-                      .filter((message) => !message.messageType || message.messageType === 'CHAT')
-                      .map((message) => {
-                        console.log(message.messageType);
-                        const isMe = message.senderId === user?.studentId;
-                        const otherUser = selectedRoom.iAmBuyer ? selectedRoom.seller : selectedRoom.buyer;
+                    <div className="flex flex-col gap-3">
+                      {messages
+                        .filter((message) => !message.messageType || message.messageType === 'CHAT')
+                        .map((message) => {
+                          console.log(message.messageType);
+                          const isMe = message.senderId === user?.studentId;
+                          const otherUser = selectedRoom.iAmBuyer ? selectedRoom.seller : selectedRoom.buyer;
 
-                        return (
-                          <div
-                            key={message.messageId}
-                            className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
-                          >
-                            <div className={`flex items-start gap-2 max-w-[70%] ${isMe ? 'flex-row-reverse' : ''}`}>
-                              {!isMe && (
-                                <UserProfile
-                                  user={otherUser}
-                                  size="sm"
-                                  showInfo={false}
-                                />
-                              )}
-                              <div>
-                                <div
-                                  className={`px-4 py-2 rounded-2xl ${
-                                    isMe
-                                      ? 'bg-primary text-white rounded-tr-none'
-                                      : 'bg-gray-100 text-gray-900 rounded-tl-none'
-                                  }`}
-                                >
-                                  <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                          return (
+                            <div
+                              key={message.messageId}
+                              className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                            >
+                              <div className={`flex items-start gap-2 max-w-[70%] ${isMe ? 'flex-row-reverse' : ''}`}>
+                                {!isMe && (
+                                  <UserProfile
+                                    user={otherUser}
+                                    size="sm"
+                                    showInfo={false}
+                                  />
+                                )}
+                                <div>
+                                  <div
+                                    className={`px-4 py-2 rounded-2xl ${
+                                      isMe
+                                        ? 'bg-primary text-white rounded-tr-none'
+                                        : 'bg-gray-100 text-gray-900 rounded-tl-none'
+                                    }`}
+                                  >
+                                    <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                                  </div>
+                                  <p className={`text-xs text-gray-500 mt-1 ${isMe ? 'text-right' : ''}`}>
+                                    {formatMessageTime(message.sentAt)}
+                                  </p>
                                 </div>
-                                <p className={`text-xs text-gray-500 mt-1 ${isMe ? 'text-right' : ''}`}>
-                                  {formatMessageTime(message.sentAt)}
-                                </p>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })
+                          );
+                        })}
+                      <div ref={messagesEndRef} />
+                    </div>
                   )}
-                  <div ref={messagesEndRef} />
                 </div>
 
                 {/* 입력 영역 */}
-                <footer className="p-4 border-t border-gray-200">
-                  <div className="flex items-center gap-3">
+                <footer className="p-4 border-t border-gray-200 bg-white">
+                  <div className="flex items-center gap-2">
                     <button className="p-2 text-primary hover:bg-primary-50 rounded-lg transition-colors" disabled>
-                      <img src={iconPicture} alt="이미지" className="w-6 h-6 opacity-50" />
+                      <img src={iconPicture} alt="이미지" className="w-5 h-5 opacity-50" />
                     </button>
                     <input
                       type="text"
                       placeholder="메시지 입력..."
                       value={messageInput}
                       onChange={(e) => setMessageInput(e.target.value)}
-                      onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                      onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                       disabled={!connected}
-                      className="flex-1 px-4 py-3 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
+                      className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
                     />
                     <button
                       onClick={handleSendMessage}
                       disabled={!connected || !messageInput.trim()}
-                      className="px-6 py-3 bg-primary text-white rounded-lg font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-5 py-2.5 bg-primary text-white rounded-full font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       전송
                     </button>
@@ -633,6 +655,6 @@ export const ChatListPage = () => {
           </main>
         </div>
       </div>
-    </Layout>
+    </div>
   );
 };

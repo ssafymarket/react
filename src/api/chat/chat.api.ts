@@ -170,10 +170,17 @@ export const getUnreadCount = async (roomId: number): Promise<number> => {
  */
 export const getTotalUnreadCount = async (): Promise<number> => {
   try {
-    const response = await client.get<{ count: number }>('/chat/unread-count');
-    return response.data.count || 0;
+    const response = await client.get<{ totalUnreadCount: number }>('/chat/unread-count');
+    return response.data.totalUnreadCount || 0;
   } catch (error) {
     console.error('읽지 않은 메시지 수 조회 실패:', error);
     return 0;
   }
+};
+
+/**
+ * 채팅방 나가기
+ */
+export const leaveChatRoom = async (roomId: number): Promise<void> => {
+  await client.delete(`/chat/room/${roomId}`);
 };

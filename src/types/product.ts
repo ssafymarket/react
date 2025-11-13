@@ -1,5 +1,3 @@
-import type { User } from './user';
-
 // 게시글 이미지 타입
 export type PostImage = {
   imageId: number;

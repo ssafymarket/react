@@ -1,6 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
+import { Toaster } from 'react-hot-toast';
 import { Router } from './routes/Router';
+import { WebSocketProvider } from './contexts/WebSocketContext';
 
 // React Query 클라이언트 설정
 const queryClient = new QueryClient({
@@ -16,8 +18,11 @@ const queryClient = new QueryClient({
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <ReactQueryDevtools initialIsOpen={false} />
+      <WebSocketProvider>
+        <Router />
+        <Toaster />
+        <ReactQueryDevtools initialIsOpen={false} />
+      </WebSocketProvider>
     </QueryClientProvider>
   );
 }

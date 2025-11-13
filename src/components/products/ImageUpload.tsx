@@ -1,4 +1,4 @@
-import { useState, useRef, ChangeEvent } from 'react';
+import { useState, useRef, type ChangeEvent } from 'react';
 import { IMAGE_UPLOAD } from '@/utils/constants';
 
 interface ImageUploadProps {
@@ -24,7 +24,7 @@ export const ImageUpload = ({ images, onImagesChange, error }: ImageUploadProps)
 
     // 파일 타입 검증
     const invalidFiles = files.filter(
-      (file) => !IMAGE_UPLOAD.acceptedTypes.includes(file.type)
+      (file) => !(IMAGE_UPLOAD.acceptedTypes as readonly string[]).includes(file.type)
     );
 
     if (invalidFiles.length > 0) {

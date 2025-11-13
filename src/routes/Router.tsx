@@ -6,6 +6,9 @@ import { SignupCompletePage } from '@/pages/SignupCompletePage';
 import { ProductDetailPage } from '@/pages/ProductDetailPage';
 import { ProductNewPage } from '@/pages/ProductNewPage';
 import { MyPage } from '@/pages/MyPage';
+import { MySellingPage } from '@/pages/MySellingPage';
+import { MyLikedPage } from '@/pages/MyLikedPage';
+import { MyTransactionsPage } from '@/pages/MyTransactionsPage';
 import { ChatListPage } from '@/pages/ChatListPage';
 import { AdminPage } from '@/pages/AdminPage';
 import { TeamPage } from '@/pages/TeamPage';
@@ -30,6 +33,9 @@ export const Router = () => {
 
         {/* Private Routes */}
         <Route path="/mypage" element={<PrivateRoute><MyPage /></PrivateRoute>} />
+        <Route path="/my/selling" element={<PrivateRoute><MySellingPage /></PrivateRoute>} />
+        <Route path="/my/liked" element={<PrivateRoute><MyLikedPage /></PrivateRoute>} />
+        <Route path="/my/transactions" element={<PrivateRoute><MyTransactionsPage /></PrivateRoute>} />
         <Route path="/chat" element={<PrivateRoute><ChatListPage /></PrivateRoute>} />
 
         {/* Admin Routes */}

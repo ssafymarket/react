@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import type { Product } from '@/types/product';
 import iconChat from '@/assets/icon_chat.svg';
 import iconHeart from '@/assets/icon_heart.svg';
+import iconCarrot from '@/assets/icon_carrot.svg';
 
 interface ProductCardProps {
   product: Product;
@@ -48,9 +49,16 @@ export const ProductCard = ({ product }: ProductCardProps) => {
         </h3>
 
         {/* 가격 */}
-        <p className="text-lg font-bold text-primary mb-2">
-          {product.price.toLocaleString()}원
-        </p>
+        {product.price === 0 ? (
+          <div className="flex items-center gap-1 mb-2">
+            <span className="text-lg font-bold text-primary">나눔</span>
+            <img src={iconCarrot} alt="나눔" className="w-5 h-5" />
+          </div>
+        ) : (
+          <p className="text-lg font-bold text-primary mb-2">
+            {product.price.toLocaleString()}원
+          </p>
+        )}
 
         {/* 상태 및 메타 정보 */}
         <div className="flex items-center justify-between text-sm text-gray-600">

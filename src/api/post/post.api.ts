@@ -1,10 +1,8 @@
 import client from '../client';
 import type {
   Product,
-  ProductDetail,
   SoldProduct,
   PurchasedProduct,
-  Transaction,
   LikedProduct,
   CreateProductRequest,
   UpdateProductRequest,

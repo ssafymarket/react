@@ -32,6 +32,7 @@ export type CreatePostResponse = {
 export type PostDetailResponse = {
   success: boolean;
   post: any; // ProductDetail 타입
+  message?: string;
 }
 
 // 게시글 수정 응답
