@@ -60,10 +60,9 @@ export const SignupPage = () => {
         password: formData.password,
       });
 
-      // 회원가입 성공 후 로그인 페이지로 이동
+      // 회원가입 성공 후 완료 페이지로 이동
       if (response.success) {
-        alert(response.message || '회원가입이 완료되었습니다. 로그인해주세요.');
-        navigate('/login');
+        navigate('/signup/complete');
       } else {
         setError(response.message || '회원가입에 실패했습니다.');
       }
@@ -87,7 +86,7 @@ export const SignupPage = () => {
       </header>
 
       {/* 메인 콘텐츠 - 중앙 정렬 */}
-      <main className="flex flex-col items-center justify-center px-4 py-12">
+      <main className="flex flex-col items-center justify-center px-4" style={{ minHeight: 'calc(100vh - 64px)' }}>
         {/* 로고 */}
         <div className="flex items-center gap-2 mb-12">
           <img src={logo} alt="싸피마켓" className="h-10" />
@@ -167,17 +166,17 @@ export const SignupPage = () => {
           {/* 버튼 영역 - 나란히 배치 */}
           <div className="flex gap-4 pt-6">
             <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="flex-1 px-8 py-3 bg-gray-100 text-gray-700 font-medium rounded-xl hover:bg-gray-200 transition-colors"
+            >
+              뒤로가기
+            </button>
+            <button
               type="submit"
               className="flex-1 px-8 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary-600 transition-colors"
             >
-              회원가입
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('/login')}
-              className="flex-1 px-8 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary-600 transition-colors"
-            >
-              로그인 화면으로
+              가입 신청
             </button>
           </div>
         </form>

@@ -6,13 +6,11 @@ import type { Product, Transaction, LikedProduct } from '@/types/product';
 import type { User } from '@/types/user';
 import { getMySellingPosts, getMyTransactions, getLikedPosts } from '@/api/post';
 import { logout as logoutApi, getMe } from '@/api/auth';
-import iconPerson from '@/assets/icon_person.svg';
 import iconLogout from '@/assets/icon_logout.svg';
 
 export const MyPage = () => {
   const navigate = useNavigate();
   const { user: storeUser, logout } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'info' | 'logout'>('info');
 
   const [user, setUserInfo] = useState<User | null>(storeUser);
   const [sellingProducts, setSellingProducts] = useState<Product[]>([]);
@@ -120,52 +118,19 @@ export const MyPage = () => {
   return (
     <Layout>
       <div className="max-w-7xl mx-auto px-4 md:px-20 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr] gap-8">
-          {/* 왼쪽 사이드바 */}
-          <aside className="bg-white rounded-2xl border border-gray-200 p-8 h-fit">
-            {/* 프로필 정보 */}
-            <div className="text-left mb-8">
-              <p className="text-lg font-bold text-gray-900">{user.name}</p>
-              <p className="text-sm text-gray-600">학번: {user.studentId}</p>
-              {user.className && <p className="text-sm text-gray-600">반: {user.className}</p>}
-            </div>
+        {/* 헤더 */}
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">마이페이지</h1>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+          >
+            <img src={iconLogout} alt="" className="w-5 h-5" />
+            로그아웃
+          </button>
+        </div>
 
-            {/* 탭 메뉴 */}
-            <nav className="space-y-2">
-              <button
-                onClick={() => setActiveTab('info')}
-                className={`w-full px-4 py-3 rounded-xl text-left font-medium transition-colors flex items-center gap-2 ${
-                  activeTab === 'info'
-                    ? 'bg-primary text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <img src={iconPerson} alt="" className="w-5 h-5" />
-                내 정보
-              </button>
-              <button
-                onClick={() => {
-                  setActiveTab('logout');
-                  handleLogout();
-                }}
-                className={`w-full px-4 py-3 rounded-xl text-left font-medium transition-colors flex items-center gap-2 ${
-                  activeTab === 'logout'
-                    ? 'bg-primary text-white'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                <img src={iconLogout} alt="" className="w-5 h-5" />
-                로그아웃
-              </button>
-            </nav>
-          </aside>
-
-          {/* 오른쪽 메인 콘텐츠 */}
-          <main>
-            {/* 헤더 */}
-            <div className="flex items-center justify-between mb-8">
-              <h1 className="text-3xl font-bold text-gray-900">마이페이지</h1>
-            </div>
+        <main>
 
             {/* 사용자 정보 */}
             <div className="bg-white rounded-2xl border border-gray-200 p-8 mb-8">
@@ -459,8 +424,7 @@ export const MyPage = () => {
                 </section>
               </>
             )}
-          </main>
-        </div>
+        </main>
       </div>
     </Layout>
   );

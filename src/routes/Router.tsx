@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { HomePage } from '@/pages/HomePage';
 import { LoginPage } from '@/pages/LoginPage';
 import { SignupPage } from '@/pages/SignupPage';
+import { SignupCompletePage } from '@/pages/SignupCompletePage';
 import { ProductDetailPage } from '@/pages/ProductDetailPage';
 import { ProductNewPage } from '@/pages/ProductNewPage';
 import { MyPage } from '@/pages/MyPage';
@@ -19,6 +20,7 @@ export const Router = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/signup/complete" element={<SignupCompletePage />} />
         <Route path="/team" element={<TeamPage />} />
 
         {/* Product Routes - 중요: /products/new를 /products/:id보다 먼저! */}

@@ -21,7 +21,7 @@ export const Footer = () => {
           <div>
             <h3 className="font-semibold text-gray-900 mb-4">문의하기</h3>
             <p className="text-sm text-gray-600">
-              각 반 반장 및 CA에게 문의해주세요.
+              문의사항은 각 반 반장 및 CA에게 문의해주세요.
             </p>
           </div>
 
