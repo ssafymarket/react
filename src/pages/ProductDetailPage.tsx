@@ -153,7 +153,7 @@ export const ProductDetailPage = () => {
 
   // 수정하기
   const handleEdit = () => {
-    navigate(`/products/${id}/edit`);
+    navigate(`/products/${id}/edit`, { replace: true });
   };
 
   // 채팅 목록 보기

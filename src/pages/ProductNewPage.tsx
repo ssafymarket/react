@@ -157,7 +157,7 @@ export const ProductNewPage = () => {
 
         if (response.success) {
           alert('게시글이 수정되었습니다.');
-          navigate(`/products/${id}`);
+          navigate(`/products/${id}`, { replace: true });
         } else {
           alert('게시글 수정에 실패했습니다.');
         }
@@ -173,7 +173,7 @@ export const ProductNewPage = () => {
 
         if (response.success) {
           alert(response.message || '게시글이 작성되었습니다.');
-          navigate(`/products/${response.postId}`);
+          navigate(`/products/${response.postId}`, { replace: true });
         } else {
           alert(response.message || '게시글 작성에 실패했습니다.');
         }
