@@ -9,6 +9,7 @@ import { useChatStore } from '@/store/chatStore';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import websocketService from '@/services/websocket.service';
 import { getChatRooms, getChatRoom, getMessages } from '@/api/chat/chat.api';
+import { completeSale, getPostById } from '@/api/post';
 import type { ChatRoom, ChatMessage } from '@/types/chat';
 import iconSearch from '@/assets/icon_search.svg';
 import iconPicture from '@/assets/icon_picture.svg';
@@ -30,6 +31,8 @@ export const ChatListPage = () => {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
   const [showRoomList, setShowRoomList] = useState(true); // 모바일: 목록 표시 여부
+  const [postStatus, setPostStatus] = useState<'판매중' | '판매완료'>('판매중'); // 게시글 상태
+  const [isLoadingPostStatus, setIsLoadingPostStatus] = useState(false); // 게시글 상태 로딩
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
@@ -146,6 +149,25 @@ export const ChatListPage = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoom?.roomId]);
 
+  // 선택된 채팅방의 게시글 상태 조회
+  useEffect(() => {
+    if (!selectedRoom) return;
+
+    const loadPostStatus = async () => {
+      setIsLoadingPostStatus(true);
+      try {
+        const response = await getPostById(selectedRoom.postId);
+        setPostStatus(response.post.status);
+      } catch (error) {
+        console.error('게시글 상태 조회 실패:', error);
+      } finally {
+        setIsLoadingPostStatus(false);
+      }
+    };
+
+    loadPostStatus();
+  }, [selectedRoom]);
+
   // 전역 알림과 읽음 알림은 WebSocketProvider에서 관리
   // ChatListPage에서는 채팅방 목록 갱신만 처리
   useEffect(() => {
@@ -246,6 +268,31 @@ export const ChatListPage = () => {
     setSelectedRoom(room);
     setShowRoomList(false); // 모바일: 대화 화면으로 전환
     // 메시지는 useEffect에서 자동으로 로드되므로 초기화하지 않음
+  };
+
+  // 거래 완료
+  const handleCompleteSale = async () => {
+    if (!selectedRoom) return;
+
+    if (!confirm(`${selectedRoom.buyer.name}님과의 거래를 완료하시겠습니까?`)) {
+      return;
+    }
+
+    try {
+      const response = await completeSale(selectedRoom.postId, selectedRoom.buyerId);
+      if (response.success) {
+        // 최신 게시글 상태 조회
+        const postResponse = await getPostById(selectedRoom.postId);
+        setPostStatus(postResponse.post.status);
+        alert('거래가 완료되었습니다!');
+        queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
+      } else {
+        alert(response.message || '거래 완료에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('거래 완료 실패:', error);
+      alert('거래 완료 중 오류가 발생했습니다.');
+    }
   };
 
   // 뒤로가기 (모바일)
@@ -431,9 +478,23 @@ export const ChatListPage = () => {
                       <p className="text-xs text-gray-600 truncate">{selectedRoom.postTitle}</p>
                     </div>
                   </div>
-                  <button className="hidden md:block px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-primary-600 transition-colors">
-                    거래완료
-                  </button>
+                  {user?.studentId === selectedRoom.sellerId && (
+                    <button
+                      onClick={handleCompleteSale}
+                      disabled={isLoadingPostStatus || postStatus === '판매완료'}
+                      className={`px-2 py-2 w-[100px] rounded-lg text-sm font-medium transition-colors ${
+                        isLoadingPostStatus || postStatus === '판매완료'
+                          ? 'bg-gray-200 text-gray-400 cursor-default'
+                          : 'bg-primary text-white hover:bg-primary-600'
+                      }`}
+                    >
+                      {isLoadingPostStatus
+                        ? '불러오는 중..'
+                        : postStatus === '판매완료'
+                        ? '거래완료'
+                        : '거래완료하기'}
+                    </button>
+                  )}
                 </header>
 
                 {/* 메시지 영역 */}
