@@ -7,6 +7,7 @@ import { ProductNewPage } from '@/pages/ProductNewPage';
 import { MyPage } from '@/pages/MyPage';
 import { ChatListPage } from '@/pages/ChatListPage';
 import { AdminPage } from '@/pages/AdminPage';
+import { TeamPage } from '@/pages/TeamPage';
 import { PrivateRoute } from './PrivateRoute';
 import { AdminRoute } from './AdminRoute';
 
@@ -18,6 +19,7 @@ export const Router = () => {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/team" element={<TeamPage />} />
 
         {/* Product Routes - 중요: /products/new를 /products/:id보다 먼저! */}
         <Route path="/products/new" element={<PrivateRoute><ProductNewPage /></PrivateRoute>} />
