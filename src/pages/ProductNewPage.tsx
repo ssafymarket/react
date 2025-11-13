@@ -20,6 +20,8 @@ export const ProductNewPage = () => {
     price: '',
   });
 
+  const [isFree, setIsFree] = useState(false);
+
   const [images, setImages] = useState<File[]>([]);
   const [existingImageUrls, setExistingImageUrls] = useState<string[]>([]);
   const [errors, setErrors] = useState({
@@ -74,6 +76,9 @@ export const ProductNewPage = () => {
             price: post.price.toString(),
           });
 
+          // 나눔 여부 설정
+          setIsFree(post.price === 0);
+
           // 기존 이미지 URL 설정
           if (post.images && post.images.length > 0) {
             const imageUrls = post.images.map((img: { imageUrl: string }) => img.imageUrl);
@@ -119,10 +124,12 @@ export const ProductNewPage = () => {
       newErrors.category = '카테고리를 선택해주세요.';
     }
 
-    // 가격 검증
-    const price = parseInt(formData.price);
-    if (!formData.price || isNaN(price) || price <= 0) {
-      newErrors.price = '올바른 가격을 입력해주세요.';
+    // 가격 검증 (나눔이 아닐 때만)
+    if (!isFree) {
+      const price = parseInt(formData.price);
+      if (!formData.price || isNaN(price) || price <= 0) {
+        newErrors.price = '올바른 가격을 입력해주세요.';
+      }
     }
 
     setErrors(newErrors);
@@ -143,7 +150,7 @@ export const ProductNewPage = () => {
         // 수정 모드: updatePost API 호출 (이미지 제외)
         const response = await updatePost(parseInt(id), {
           title: formData.title,
-          price: parseInt(formData.price),
+          price: isFree ? 0 : parseInt(formData.price),
           category: formData.category,
           description: formData.description || undefined,
         });
@@ -159,7 +166,7 @@ export const ProductNewPage = () => {
         const response = await createPost({
           files: images,
           title: formData.title,
-          price: parseInt(formData.price),
+          price: isFree ? 0 : parseInt(formData.price),
           category: formData.category,
           description: formData.description || undefined,
         });
@@ -305,6 +312,26 @@ export const ProductNewPage = () => {
           {/* 가격 */}
           <div className="bg-white rounded-2xl p-6 border border-gray-200">
             <h3 className="font-bold text-gray-900 mb-4">가격 *</h3>
+
+            {/* 나눔 체크박스 */}
+            <label className="flex items-center gap-2 mb-4 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isFree}
+                onChange={(e) => {
+                  setIsFree(e.target.checked);
+                  if (e.target.checked) {
+                    setFormData((prev) => ({ ...prev, price: '0' }));
+                    setErrors((prev) => ({ ...prev, price: '' }));
+                  } else {
+                    setFormData((prev) => ({ ...prev, price: '' }));
+                  }
+                }}
+                className="w-5 h-5 text-primary border-gray-300 rounded focus:ring-2 focus:ring-primary"
+              />
+              <span className="text-sm font-medium text-gray-700">나눔 (무료)</span>
+            </label>
+
             <div className="relative">
               <input
                 type="number"
@@ -314,12 +341,16 @@ export const ProductNewPage = () => {
                 onChange={handleChange}
                 required
                 min="0"
+                disabled={isFree}
                 className={`w-full px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent ${
                   errors.price ? 'border-danger' : 'border-gray-300'
-                }`}
+                } ${isFree ? 'bg-gray-100 cursor-not-allowed' : ''}`}
               />
             </div>
             {errors.price && <p className="text-sm text-danger mt-2">{errors.price}</p>}
+            {isFree && (
+              <p className="text-sm text-primary mt-2">나눔으로 설정되었습니다 (0원)</p>
+            )}
           </div>
 
           {/* 상품 설명 */}

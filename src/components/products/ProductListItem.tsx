@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import type { Product } from '@/types/product';
 import iconChat from '@/assets/icon_chat.svg';
 import iconHeart from '@/assets/icon_heart.svg';
+import iconCarrot from '@/assets/icon_carrot.svg';
 
 interface ProductListItemProps {
   product: Product;
@@ -47,9 +48,16 @@ export const ProductListItem = ({ product }: ProductListItemProps) => {
           <h3 className="text-sm font-medium text-gray-900 mb-1 line-clamp-2">
             {product.title}
           </h3>
-          <p className="text-base font-bold text-primary">
-            {product.price.toLocaleString()}원
-          </p>
+          {product.price === 0 ? (
+            <div className="flex items-center gap-1">
+              <span className="text-base font-bold text-primary">나눔</span>
+              <img src={iconCarrot} alt="나눔" className="w-4 h-4" />
+            </div>
+          ) : (
+            <p className="text-base font-bold text-primary">
+              {product.price.toLocaleString()}원
+            </p>
+          )}
         </div>
 
         {/* 하단: 메타 정보 */}

@@ -8,6 +8,7 @@ import { getMySellingPosts, getMyTransactions, getLikedPosts } from '@/api/post'
 import { logout as logoutApi, getMe } from '@/api/auth';
 import iconPerson from '@/assets/icon_person.svg';
 import iconLogout from '@/assets/icon_logout.svg';
+import iconCarrot from '@/assets/icon_carrot.svg';
 
 export const MyPage = () => {
   const navigate = useNavigate();
@@ -235,7 +236,14 @@ export const MyPage = () => {
                             </div>
                             <div className="flex-1">
                               <p className="font-medium text-gray-900">{product.title}</p>
-                              <p className="text-sm text-gray-600">{product.price.toLocaleString()}원</p>
+                              {product.price === 0 ? (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-sm text-gray-600">나눔</span>
+                                  <img src={iconCarrot} alt="나눔" className="w-3 h-3" />
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-600">{product.price.toLocaleString()}원</p>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -260,7 +268,14 @@ export const MyPage = () => {
                             </div>
                             <div className="p-4">
                               <p className="font-medium text-gray-900 mb-1 line-clamp-1">{product.title}</p>
-                              <p className="text-lg font-bold text-gray-900">{product.price.toLocaleString()}원</p>
+                              {product.price === 0 ? (
+                                <div className="flex items-center gap-1 mb-1">
+                                  <span className="text-lg font-bold text-gray-900">나눔</span>
+                                  <img src={iconCarrot} alt="나눔" className="w-5 h-5" />
+                                </div>
+                              ) : (
+                                <p className="text-lg font-bold text-gray-900">{product.price.toLocaleString()}원</p>
+                              )}
                               <p className="text-sm text-gray-500 mt-1">{product.status}</p>
                             </div>
                           </div>
@@ -283,7 +298,7 @@ export const MyPage = () => {
                 <section className="mb-8">
                   <div className="flex items-center justify-between mb-4">
                     <h2 className="text-2xl font-bold text-gray-900">
-                      좋아요 <span className="text-primary">{likedProducts.length}개</span>
+                      관심목록 <span className="text-primary">{likedProducts.length}개</span>
                     </h2>
                   </div>
 
@@ -312,7 +327,14 @@ export const MyPage = () => {
                             </div>
                             <div className="flex-1">
                               <p className="font-medium text-gray-900">{product.title}</p>
-                              <p className="text-sm text-gray-600">{product.price.toLocaleString()}원</p>
+                              {product.price === 0 ? (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-sm text-gray-600">나눔</span>
+                                  <img src={iconCarrot} alt="나눔" className="w-3 h-3" />
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-600">{product.price.toLocaleString()}원</p>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -337,7 +359,14 @@ export const MyPage = () => {
                             </div>
                             <div className="p-4">
                               <p className="font-medium text-gray-900 mb-1 line-clamp-1">{product.title}</p>
-                              <p className="text-lg font-bold text-gray-900">{product.price.toLocaleString()}원</p>
+                              {product.price === 0 ? (
+                                <div className="flex items-center gap-1 mb-1">
+                                  <span className="text-lg font-bold text-gray-900">나눔</span>
+                                  <img src={iconCarrot} alt="나눔" className="w-5 h-5" />
+                                </div>
+                              ) : (
+                                <p className="text-lg font-bold text-gray-900">{product.price.toLocaleString()}원</p>
+                              )}
                               <p className="text-sm text-gray-500 mt-1">{product.status}</p>
                             </div>
                           </div>
@@ -393,7 +422,14 @@ export const MyPage = () => {
                             </div>
                             <div className="flex-1">
                               <p className="font-medium text-gray-900">{transaction.post.title}</p>
-                              <p className="text-sm text-gray-600">{transaction.post.price.toLocaleString()}원</p>
+                              {transaction.post.price === 0 ? (
+                                <div className="flex items-center gap-1">
+                                  <span className="text-sm text-gray-600">나눔</span>
+                                  <img src={iconCarrot} alt="나눔" className="w-3 h-3" />
+                                </div>
+                              ) : (
+                                <p className="text-sm text-gray-600">{transaction.post.price.toLocaleString()}원</p>
+                              )}
                             </div>
                             <span
                               className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -429,9 +465,16 @@ export const MyPage = () => {
                               <p className="font-medium text-gray-900 mb-1 line-clamp-1">
                                 {transaction.post.title}
                               </p>
-                              <p className="text-lg font-bold text-gray-900 mb-2">
-                                {transaction.post.price.toLocaleString()}원
-                              </p>
+                              {transaction.post.price === 0 ? (
+                                <div className="flex items-center gap-1 mb-2">
+                                  <span className="text-lg font-bold text-gray-900">나눔</span>
+                                  <img src={iconCarrot} alt="나눔" className="w-5 h-5" />
+                                </div>
+                              ) : (
+                                <p className="text-lg font-bold text-gray-900 mb-2">
+                                  {transaction.post.price.toLocaleString()}원
+                                </p>
+                              )}
                               <span
                                 className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${
                                   transaction.type === '판매'

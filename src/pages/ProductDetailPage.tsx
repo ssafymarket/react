@@ -7,6 +7,7 @@ import { getPostById, deletePost, addLike, removeLike, checkLikeStatus } from '@
 import { createOrGetChatRoom } from '@/api/chat';
 import iconHeart from '@/assets/icon_heart.svg';
 import iconChat from '@/assets/icon_chat.svg';
+import iconCarrot from '@/assets/icon_carrot.svg';
 
 export const ProductDetailPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -294,7 +295,14 @@ export const ProductDetailPage = () => {
             <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">{product.title}</h1>
 
             {/* 가격 */}
-            <p className="text-2xl md:text-3xl font-bold text-primary mb-6">{product.price.toLocaleString()}원</p>
+            {product.price === 0 ? (
+              <div className="flex items-center gap-2 mb-6">
+                <p className="text-2xl md:text-3xl font-bold text-primary">나눔</p>
+                <img src={iconCarrot} alt="나눔" className="w-7 h-7" />
+              </div>
+            ) : (
+              <p className="text-2xl md:text-3xl font-bold text-primary mb-6">{product.price.toLocaleString()}원</p>
+            )}
 
             {/* 카테고리 및 등록일 */}
             <div className="mb-6">

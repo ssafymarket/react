@@ -1,12 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useEffect } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { Button, Badge } from '../common';
 import { SearchBar } from './SearchBar';
 import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import { getTotalUnreadCount } from '@/api/chat/chat.api';
-import websocketService from '@/services/websocket.service';
 import logo from '@/assets/icon_logo.svg';
 import iconPen from '@/assets/icon_pen.svg';
 import iconChat from '@/assets/icon_chat.svg';
@@ -14,7 +13,6 @@ import iconPerson from '@/assets/icon_person.svg';
 
 export const Header = () => {
   const { isLoggedIn, user } = useAuthStore();
-  const queryClient = useQueryClient();
   const { totalUnreadCount, setTotalUnreadCount } = useChatStore();
 
   const isAdmin = user?.role === 'ROLE_ADMIN';
@@ -35,38 +33,9 @@ export const Header = () => {
     }
   }, [polledUnreadCount, setTotalUnreadCount]);
 
-  // WebSocket 실시간 알림 구독
-  useEffect(() => {
-    if (!isLoggedIn) return;
-
-    // WebSocket 연결
-    websocketService.connect(
-      () => {
-        console.log('[Header] WebSocket 연결 성공');
-
-        // 전역 알림 구독
-        websocketService.subscribeToNotifications((notification) => {
-          console.log('[Header] 실시간 알림 수신:', notification);
-
-          // totalUnreadCount 실시간 업데이트
-          if (notification.totalUnreadCount !== undefined) {
-            setTotalUnreadCount(notification.totalUnreadCount);
-
-            // React Query 캐시도 업데이트
-            queryClient.setQueryData(['totalUnreadCount'], notification.totalUnreadCount);
-          }
-        });
-      },
-      (error) => {
-        console.error('[Header] WebSocket 연결 실패:', error);
-      }
-    );
-
-    return () => {
-      // 컴포넌트 언마운트 시 구독 취소 (연결은 유지)
-      websocketService.unsubscribeFromNotifications();
-    };
-  }, [isLoggedIn, queryClient, setTotalUnreadCount]);
+  // WebSocket 구독은 WebSocketProvider에서 전역 관리
+  // Header는 useChatStore의 totalUnreadCount를 실시간으로 표시
+  // 폴링은 WebSocket 연결 실패 시 백업용으로 동작
 
   return (
     <>
