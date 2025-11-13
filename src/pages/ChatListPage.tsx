@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import websocketService from '@/services/websocket.service';
 import { getChatRooms, getChatRoom, getMessages, markAsRead } from '@/api/chat/chat.api';
-import { completeSale } from '@/api/post/post.api';
+import { completeSale, getPostById } from '@/api/post/post.api';
 import type { ChatRoom, ChatMessage } from '@/types/chat';
 import iconSearch from '@/assets/icon_search.svg';
 import iconPicture from '@/assets/icon_picture.svg';
@@ -29,7 +29,8 @@ export const ChatListPage = () => {
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
   const [showRoomList, setShowRoomList] = useState(true); // 모바일: 목록 표시 여부
-  const [isCompleted, setIsCompleted] = useState(false); // 거래 완료 상태
+  const [postStatus, setPostStatus] = useState<'판매중' | '판매완료'>('판매중'); // 게시글 상태
+  const [isLoadingPostStatus, setIsLoadingPostStatus] = useState(false); // 게시글 상태 로딩
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
@@ -150,6 +151,25 @@ export const ChatListPage = () => {
     loadMessages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRoom?.roomId]);
+
+  // 선택된 채팅방의 게시글 상태 조회
+  useEffect(() => {
+    if (!selectedRoom) return;
+
+    const loadPostStatus = async () => {
+      setIsLoadingPostStatus(true);
+      try {
+        const response = await getPostById(selectedRoom.postId);
+        setPostStatus(response.post.status);
+      } catch (error) {
+        console.error('게시글 상태 조회 실패:', error);
+      } finally {
+        setIsLoadingPostStatus(false);
+      }
+    };
+
+    loadPostStatus();
+  }, [selectedRoom]);
 
   // 전역 알림 구독 (채팅방 목록 실시간 갱신용)
   useEffect(() => {
@@ -290,7 +310,9 @@ export const ChatListPage = () => {
     try {
       const response = await completeSale(selectedRoom.postId, selectedRoom.buyerId);
       if (response.success) {
-        setIsCompleted(true);
+        // 최신 게시글 상태 조회
+        const postResponse = await getPostById(selectedRoom.postId);
+        setPostStatus(postResponse.post.status);
         alert('거래가 완료되었습니다!');
         queryClient.invalidateQueries({ queryKey: ['chatRooms'] });
       } else {
@@ -494,14 +516,18 @@ export const ChatListPage = () => {
                   {user?.studentId === selectedRoom.sellerId && (
                     <button
                       onClick={handleCompleteSale}
-                      disabled={isCompleted}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                        isCompleted
-                          ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      disabled={isLoadingPostStatus || postStatus === '판매완료'}
+                      className={`px-2 py-2 w-[100px] rounded-lg text-sm font-medium transition-colors ${
+                        isLoadingPostStatus || postStatus === '판매완료'
+                          ? 'bg-gray-200 text-gray-400 cursor-default'
                           : 'bg-primary text-white hover:bg-primary-600'
                       }`}
                     >
-                      {isCompleted ? '거래완료' : '거래완료하기'}
+                      {isLoadingPostStatus
+                        ? '불러오는 중..'
+                        : postStatus === '판매완료'
+                        ? '거래완료'
+                        : '거래완료하기'}
                     </button>
                   )}
                 </header>
