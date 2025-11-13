@@ -5,7 +5,7 @@ export const Footer = () => {
   return (
     <footer className="bg-white border-t border-gray-200">
       <div className="max-w-content mx-auto px-4 md:px-8 lg:px-20 py-8 md:py-12">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
           {/* 싸피마켓 */}
           <div>
             <Link to="/" className="flex items-center gap-2 mb-4">
@@ -15,24 +15,6 @@ export const Footer = () => {
             <p className="text-sm text-gray-600">
               싸피 구미캠퍼스 중고 직거래 플랫폼
             </p>
-          </div>
-
-          {/* 고객지원 */}
-          <div>
-            <h3 className="font-semibold text-gray-900 mb-4">고객지원</h3>
-            <ul className="space-y-2">
-              <li>
-                <Link
-                  to="/notice"
-                  className="text-sm text-gray-600 hover:text-primary transition-colors"
-                >
-                  공지사항
-                </Link>
-              </li>
-              <li>
-                <span className="text-sm text-gray-600">자주 묻는 질문</span>
-              </li>
-            </ul>
           </div>
 
           {/* 문의하기 */}
