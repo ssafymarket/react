@@ -31,11 +31,8 @@ export const HomePage = () => {
   // URL 파라미터에서 검색어 가져오기
   useEffect(() => {
     const keyword = searchParams.get('search');
-    console.log('검색 파라미터:', keyword);
     if (keyword) {
       setSearchKeyword(keyword);
-    } else {
-      setSearchKeyword(''); // 검색어가 없으면 초기화
     }
   }, [searchParams]);
 
