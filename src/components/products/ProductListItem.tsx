@@ -11,16 +11,6 @@ interface ProductListItemProps {
 export const ProductListItem = ({ product }: ProductListItemProps) => {
   const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
 
-  const statusText = {
-    '판매중': '판매중',
-    '판매완료': '판매완료',
-  };
-
-  const statusColor = {
-    '판매중': 'text-primary',
-    '판매완료': 'text-gray-500',
-  };
-
   return (
     <Link
       to={`/products/${product.postId}`}
@@ -48,37 +38,41 @@ export const ProductListItem = ({ product }: ProductListItemProps) => {
           <h3 className="text-sm font-medium text-gray-900 mb-1 line-clamp-2">
             {product.title}
           </h3>
-          {product.price === 0 ? (
-            <div className="flex items-center gap-1">
-              <span className="text-base font-bold text-primary">나눔</span>
-              <img src={iconCarrot} alt="나눔" className="w-4 h-4" />
-            </div>
-          ) : (
-            <p className="text-base font-bold text-primary">
-              {product.price.toLocaleString()}원
-            </p>
-          )}
+          <div className="flex items-center gap-2 mb-1">
+            {product.price === 0 ? (
+              <div className="flex items-center gap-1">
+                <span className="text-base font-bold text-primary">나눔</span>
+                <img src={iconCarrot} alt="나눔" className="w-4 h-4" />
+              </div>
+            ) : (
+              <p className="text-base font-bold text-primary">
+                {product.price.toLocaleString()}원
+              </p>
+            )}
+
+            {/* 판매완료 배지 */}
+            {product.status === '판매완료' && (
+              <span className="px-2 py-0.5 rounded-lg text-xs font-medium bg-primary text-white">
+                판매완료
+              </span>
+            )}
+          </div>
         </div>
 
         {/* 하단: 메타 정보 */}
-        <div className="flex items-center justify-between text-xs text-gray-600">
-          <span className={`font-medium ${statusColor[product.status]}`}>
-            {statusText[product.status]}
-          </span>
-          <div className="flex items-center gap-2">
-            {/* 채팅수 */}
-            <div className="flex items-center gap-1">
-              <img src={iconChat} alt="" className="w-3.5 h-3.5" />
-              <span>{product.chatRoomCount}</span>
-            </div>
-            {/* 좋아요 수 */}
-            {product.likeCount > 0 && (
-              <div className="flex items-center gap-1">
-                <img src={iconHeart} alt="" className="w-3.5 h-3.5" />
-                <span>{product.likeCount}</span>
-              </div>
-            )}
+        <div className="flex items-center justify-end gap-2 text-xs text-gray-600">
+          {/* 채팅수 */}
+          <div className="flex items-center gap-1">
+            <img src={iconChat} alt="" className="w-3.5 h-3.5" />
+            <span>{product.chatRoomCount}</span>
           </div>
+          {/* 좋아요 수 */}
+          {product.likeCount > 0 && (
+            <div className="flex items-center gap-1">
+              <img src={iconHeart} alt="" className="w-3.5 h-3.5" />
+              <span>{product.likeCount}</span>
+            </div>
+          )}
         </div>
       </div>
     </Link>

@@ -10,10 +10,17 @@ const client = axios.create({
   withCredentials: true, // 쿠키를 자동으로 포함 (세션 인증 필요)
 });
 
+// 에러 토스트 중복 방지를 위한 변수
+let lastErrorTime = 0;
+let lastErrorMessage = '';
+const ERROR_THROTTLE_MS = 1000; // 1초 내 같은 에러는 무시
+
 // 응답 인터셉터 - 에러 처리
 client.interceptors.response.use(
   (response) => response,
   (error) => {
+    const now = Date.now();
+    const errorMessage = error.response?.data?.message || error.message;
     // 401 Unauthorized - 세션 만료 또는 인증 필요
     if (error.response?.status === 401) {
       // 로그인 페이지가 아닌 경우에만 리다이렉트
@@ -50,13 +57,27 @@ client.interceptors.response.use(
     if (error.response?.status === 500) {
       const message = error.response?.data?.message || '서버 오류가 발생했습니다.';
       console.error('Server Error:', message);
-      showToast.error('서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+
+      // 중복 방지: 1초 내 같은 에러 메시지는 무시
+      const toastMessage = '서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.';
+      if (now - lastErrorTime > ERROR_THROTTLE_MS || lastErrorMessage !== toastMessage) {
+        showToast.error(toastMessage);
+        lastErrorTime = now;
+        lastErrorMessage = toastMessage;
+      }
     }
 
     // 네트워크 오류
     if (!error.response) {
       console.error('Network Error:', error.message);
-      showToast.error('네트워크 연결을 확인해주세요.');
+
+      // 중복 방지: 1초 내 같은 에러 메시지는 무시
+      const toastMessage = '네트워크 연결을 확인해주세요.';
+      if (now - lastErrorTime > ERROR_THROTTLE_MS || lastErrorMessage !== toastMessage) {
+        showToast.error(toastMessage);
+        lastErrorTime = now;
+        lastErrorMessage = toastMessage;
+      }
     }
 
     return Promise.reject(error);

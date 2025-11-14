@@ -26,10 +26,17 @@ export type ChatMessageResponse = {
   senderId: string;
   senderName: string;
   content: string;
-  messageType: 'CHAT' | 'ENTER' | 'LEAVE' | 'PRICE_OFFER' | 'SYSTEM';
+  messageType: 'CHAT' | 'ENTER' | 'LEAVE' | 'PRICE_OFFER' | 'SYSTEM' | 'IMAGE';
   sentAt: string;
   isRead: boolean;
   readAt: string | null;
+  imageUrl?: string;
+};
+
+export type UploadImageResponse = {
+  imageUrl: string;
+  success: boolean;
+  message: string;
 };
 
 export type CreateChatRoomRequest = {
@@ -95,6 +102,7 @@ export const convertToChatMessage = (response: ChatMessageResponse): ChatMessage
     isRead: response.isRead,
     messageType: response.messageType,
     readAt: response.readAt,
+    imageUrl: response.imageUrl,
   };
 };
 
@@ -183,4 +191,20 @@ export const getTotalUnreadCount = async (): Promise<number> => {
  */
 export const leaveChatRoom = async (roomId: number): Promise<void> => {
   await client.delete(`/chat/room/${roomId}`);
+};
+
+/**
+ * 채팅 이미지 업로드
+ */
+export const uploadChatImage = async (file: File): Promise<string> => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await client.post<UploadImageResponse>('/chat/upload-image', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data',
+    },
+  });
+
+  return response.data.imageUrl;
 };

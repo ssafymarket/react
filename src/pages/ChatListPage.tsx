@@ -8,7 +8,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useChatStore } from '@/store/chatStore';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 import websocketService from '@/services/websocket.service';
-import { getChatRooms, getChatRoom, getMessages, leaveChatRoom } from '@/api/chat/chat.api';
+import { getChatRooms, getChatRoom, getMessages, leaveChatRoom, uploadChatImage } from '@/api/chat/chat.api';
 import { completeSale, getPostById } from '@/api/post';
 import type { ChatRoom, ChatMessage } from '@/types/chat';
 import iconPicture from '@/assets/icon_picture.svg';
@@ -29,6 +29,8 @@ export const ChatListPage = () => {
   const [connected, setConnected] = useState(false);
   const [isLoadingMessages, setIsLoadingMessages] = useState(false);
   const [messageError, setMessageError] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 모바일: 목록 표시 여부 - roomId 파라미터가 있고 모바일이면 채팅방부터 보여주기
   const [showRoomList, setShowRoomList] = useState(() => {
@@ -39,6 +41,7 @@ export const ChatListPage = () => {
   const [postStatus, setPostStatus] = useState<'판매중' | '판매완료'>('판매중'); // 게시글 상태
   const [isLoadingPostStatus, setIsLoadingPostStatus] = useState(false); // 게시글 상태 로딩
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const hasShownErrorRef = useRef(false); // 에러 알림 중복 방지
 
   const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
 
@@ -98,6 +101,26 @@ export const ChatListPage = () => {
     // 먼저 기존 목록에서 찾기 (이미 로드된 경우)
     const existingRoom = chatRooms.find((r) => r.roomId === roomId);
     if (existingRoom) {
+      // 권한 검증: 현재 사용자가 이 채팅방의 구매자 또는 판매자인지 확인
+      const isAuthorized = existingRoom.buyerId === user?.studentId ||
+                          existingRoom.sellerId === user?.studentId;
+      if (!isAuthorized) {
+        console.warn('채팅방 접근 권한이 없습니다.');
+        // 에러 알림 한번만 표시
+        if (!hasShownErrorRef.current) {
+          alert('채팅방 접근 권한이 없습니다.');
+          hasShownErrorRef.current = true;
+        }
+        // 모바일이면 목록 표시, 데스크탑이면 /chat으로
+        const isMobile = window.innerWidth < 1024;
+        if (isMobile) {
+          setShowRoomList(true);
+          navigate('/chat', { replace: true });
+        } else {
+          navigate('/chat', { replace: true });
+        }
+        return;
+      }
       setSelectedRoom(existingRoom);
       return;
     }
@@ -110,6 +133,27 @@ export const ChatListPage = () => {
           getMessages(roomId),
         ]);
 
+        // 권한 검증: 현재 사용자가 이 채팅방의 구매자 또는 판매자인지 확인
+        const isAuthorized = room.buyerId === user?.studentId ||
+                            room.sellerId === user?.studentId;
+        if (!isAuthorized) {
+          console.warn('채팅방 접근 권한이 없습니다.');
+          // 에러 알림 한번만 표시
+          if (!hasShownErrorRef.current) {
+            alert('채팅방 접근 권한이 없습니다.');
+            hasShownErrorRef.current = true;
+          }
+          // 모바일이면 목록 표시, 데스크탑이면 /chat으로
+          const isMobile = window.innerWidth < 1024;
+          if (isMobile) {
+            setShowRoomList(true);
+            navigate('/chat', { replace: true });
+          } else {
+            navigate('/chat', { replace: true });
+          }
+          return;
+        }
+
         setSelectedRoom(room);
 
         // 메시지 정렬 및 설정
@@ -119,12 +163,19 @@ export const ChatListPage = () => {
         setMessages(sorted);
       } catch (error) {
         console.error('채팅방 로드 실패:', error);
-        setMessageError('채팅방을 불러오는데 실패했습니다.');
+        // 모바일이면 목록 표시, 데스크탑이면 /chat으로
+        const isMobile = window.innerWidth < 1024;
+        if (isMobile) {
+          setShowRoomList(true);
+          navigate('/chat', { replace: true });
+        } else {
+          navigate('/chat', { replace: true });
+        }
       }
     };
 
     loadRoomAndMessages();
-  }, [searchParams, chatRooms, selectedRoom]);
+  }, [searchParams, chatRooms, selectedRoom, user?.studentId, navigate]);
 
   // 선택된 채팅방 메시지 로드 (채팅방 변경 시에만)
   useEffect(() => {
@@ -194,11 +245,16 @@ export const ChatListPage = () => {
 
     // WebSocket 구독
     websocketService.subscribeToRoom(roomId, (newMessage: ChatMessage) => {
+      // 디버깅: 받은 메시지 로그
+      console.log('🔔 받은 메시지:', newMessage);
+
       // 중복 메시지 방지
       setMessages((prev) => {
         if (prev.some(msg => msg.messageId === newMessage.messageId)) {
+          console.log('⚠️ 중복 메시지 무시:', newMessage.messageId);
           return prev;
         }
+        console.log('✅ 새 메시지 추가:', newMessage.messageId, newMessage.messageType);
         return [...prev, newMessage];
       });
 
@@ -265,6 +321,71 @@ export const ChatListPage = () => {
     } catch (error) {
       console.error('메시지 전송 실패:', error);
       alert('메시지 전송에 실패했습니다.');
+    }
+  };
+
+  // 이미지 버튼 클릭
+  const handleImageButtonClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // 이미지 파일 선택
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedRoom) return;
+
+    // 파일 타입 검증
+    if (!file.type.startsWith('image/')) {
+      alert('이미지 파일만 업로드할 수 있습니다.');
+      return;
+    }
+
+    // 파일 크기 검증 (10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      alert('10MB 이하의 이미지만 업로드할 수 있습니다.');
+      return;
+    }
+
+    if (!connected) {
+      alert('WebSocket이 연결되지 않았습니다.');
+      return;
+    }
+
+    try {
+      setIsUploadingImage(true);
+
+      // 1. 이미지 업로드
+      const imageUrl = await uploadChatImage(file);
+
+      // 2. 전체 URL 생성 (IMAGE_BASE_URL + imageUrl)
+      const fullImageUrl = imageUrl.startsWith('http') ? imageUrl : `${IMAGE_BASE_URL}${imageUrl}`;
+
+      // 3. WebSocket으로 IMAGE 타입 메시지 전송
+      websocketService.sendMessage(selectedRoom.roomId, fullImageUrl, 'IMAGE', fullImageUrl);
+
+      // 4. 낙관적 업데이트: 내가 보낸 이미지 메시지를 즉시 화면에 표시
+      const tempMessage: ChatMessage = {
+        messageId: Date.now(), // 임시 ID
+        roomId: selectedRoom.roomId,
+        senderId: user!.studentId,
+        sender: user!,
+        content: fullImageUrl,
+        sentAt: new Date().toISOString(),
+        isRead: false,
+        messageType: 'IMAGE',
+        imageUrl: fullImageUrl,
+      };
+      setMessages((prev) => [...prev, tempMessage]);
+
+      // 파일 입력 초기화
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } catch (error) {
+      console.error('이미지 전송 실패:', error);
+      alert('이미지 전송에 실패했습니다.');
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -596,11 +717,11 @@ export const ChatListPage = () => {
                   ) : (
                     <div className="flex flex-col gap-3">
                       {messages
-                        .filter((message) => !message.messageType || message.messageType === 'CHAT')
+                        .filter((message) => !message.messageType || message.messageType === 'CHAT' || message.messageType === 'IMAGE')
                         .map((message) => {
-                          console.log(message.messageType);
                           const isMe = message.senderId === user?.studentId;
                           const otherUser = selectedRoom.iAmBuyer ? selectedRoom.seller : selectedRoom.buyer;
+                          const isImageMessage = message.messageType === 'IMAGE';
 
                           return (
                             <div
@@ -617,13 +738,26 @@ export const ChatListPage = () => {
                                 )}
                                 <div>
                                   <div
-                                    className={`px-4 py-2 rounded-2xl ${
-                                      isMe
-                                        ? 'bg-primary text-white rounded-tr-none'
-                                        : 'bg-gray-100 text-gray-900 rounded-tl-none'
+                                    className={`${
+                                      isImageMessage
+                                        ? 'rounded-2xl overflow-hidden'
+                                        : `px-4 py-2 rounded-2xl ${
+                                            isMe
+                                              ? 'bg-primary text-white rounded-tr-none'
+                                              : 'bg-gray-100 text-gray-900 rounded-tl-none'
+                                          }`
                                     }`}
                                   >
-                                    <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                                    {isImageMessage ? (
+                                      <img
+                                        src={message.imageUrl?.startsWith('http') ? message.imageUrl : `${IMAGE_BASE_URL}${message.imageUrl}`}
+                                        alt="전송된 이미지"
+                                        className="max-w-full max-h-80 rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
+                                        onClick={() => window.open(message.imageUrl?.startsWith('http') ? message.imageUrl : `${IMAGE_BASE_URL}${message.imageUrl}`, '_blank')}
+                                      />
+                                    ) : (
+                                      <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                                    )}
                                   </div>
                                   <p className={`text-xs text-gray-500 mt-1 ${isMe ? 'text-right' : ''}`}>
                                     {formatMessageTime(message.sentAt)}
@@ -641,8 +775,19 @@ export const ChatListPage = () => {
                 {/* 입력 영역 */}
                 <footer className="p-4 border-t border-gray-200 bg-white">
                   <div className="flex items-center gap-2">
-                    <button className="p-2 text-primary hover:bg-primary-50 rounded-lg transition-colors" disabled>
-                      <img src={iconPicture} alt="이미지" className="w-5 h-5 opacity-50" />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageSelect}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={handleImageButtonClick}
+                      disabled={!connected || isUploadingImage}
+                      className="p-2 text-primary hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <img src={iconPicture} alt="이미지" className="w-5 h-5" />
                     </button>
                     <input
                       type="text"
@@ -658,7 +803,7 @@ export const ChatListPage = () => {
                       disabled={!connected || !messageInput.trim()}
                       className="px-5 py-2.5 bg-primary text-white rounded-full font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      전송
+                      {isUploadingImage ? '전송 중...' : '전송'}
                     </button>
                   </div>
                 </footer>

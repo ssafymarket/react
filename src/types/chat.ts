@@ -27,7 +27,8 @@ export type ChatMessage = {
   sentAt: string;
   isRead: boolean;
   readAt?: string | null;
-  messageType?: 'CHAT' | 'ENTER' | 'LEAVE' | 'PRICE_OFFER' | 'SYSTEM';
+  messageType?: 'CHAT' | 'ENTER' | 'LEAVE' | 'PRICE_OFFER' | 'SYSTEM' | 'IMAGE';
+  imageUrl?: string;
 }
 
 export type SendMessageRequest = {

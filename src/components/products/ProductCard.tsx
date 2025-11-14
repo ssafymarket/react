@@ -11,16 +11,6 @@ interface ProductCardProps {
 export const ProductCard = ({ product }: ProductCardProps) => {
   const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
 
-  const statusText = {
-    '판매중': '판매중',
-    '판매완료': '판매완료',
-  };
-
-  const statusColor = {
-    '판매중': 'text-primary',
-    '판매완료': 'text-gray-500',
-  };
-
   return (
     <Link
       to={`/products/${product.postId}`}
@@ -48,37 +38,41 @@ export const ProductCard = ({ product }: ProductCardProps) => {
           {product.title}
         </h3>
 
-        {/* 가격 */}
-        {product.price === 0 ? (
-          <div className="flex items-center gap-1 mb-2">
-            <span className="text-lg font-bold text-primary">나눔</span>
-            <img src={iconCarrot} alt="나눔" className="w-5 h-5" />
-          </div>
-        ) : (
-          <p className="text-lg font-bold text-primary mb-2">
-            {product.price.toLocaleString()}원
-          </p>
-        )}
-
-        {/* 상태 및 메타 정보 */}
-        <div className="flex items-center justify-between text-sm text-gray-600">
-          <span className={`font-medium ${statusColor[product.status]}`}>
-            {statusText[product.status]}
-          </span>
-          <div className="flex items-center gap-3">
-            {/* 채팅수 */}
+        {/* 가격 및 판매완료 배지 */}
+        <div className="flex items-center gap-2 mb-2">
+          {product.price === 0 ? (
             <div className="flex items-center gap-1">
-              <img src={iconChat} alt="" className="w-4 h-4" />
-              <span>{product.chatRoomCount}</span>
+              <span className="text-lg font-bold text-primary">나눔</span>
+              <img src={iconCarrot} alt="나눔" className="w-5 h-5" />
             </div>
-            {/* 좋아요 수 */}
-            {product.likeCount > 0 && (
-              <div className="flex items-center gap-1">
-                <img src={iconHeart} alt="" className="w-4 h-4" />
-                <span>{product.likeCount}</span>
-              </div>
-            )}
+          ) : (
+            <p className="text-lg font-bold text-primary">
+              {product.price.toLocaleString()}원
+            </p>
+          )}
+
+          {/* 판매완료 배지 */}
+          {product.status === '판매완료' && (
+            <span className="px-2 py-1 rounded-lg text-xs font-medium bg-primary text-white">
+              판매완료
+            </span>
+          )}
+        </div>
+
+        {/* 메타 정보 */}
+        <div className="flex items-center justify-end gap-3 text-sm text-gray-600">
+          {/* 채팅수 */}
+          <div className="flex items-center gap-1">
+            <img src={iconChat} alt="" className="w-4 h-4" />
+            <span>{product.chatRoomCount}</span>
           </div>
+          {/* 좋아요 수 */}
+          {product.likeCount > 0 && (
+            <div className="flex items-center gap-1">
+              <img src={iconHeart} alt="" className="w-4 h-4" />
+              <span>{product.likeCount}</span>
+            </div>
+          )}
         </div>
 
         {/* 카테고리 */}

@@ -263,6 +263,10 @@ export const ProductDetailPage = () => {
   // 작성자인지 확인
   const isAuthor = user?.studentId === product?.writer.studentId;
 
+  // 관리자 또는 작성자인 경우 메뉴 표시
+  const isAdmin = user?.role === 'ROLE_ADMIN';
+  const canManagePost = isAuthor || isAdmin;
+
   // 로딩 상태
   if (loading) {
     return (
@@ -367,17 +371,14 @@ export const ProductDetailPage = () => {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <span
-                  className={`px-4 py-2 rounded-lg text-sm font-medium ${
-                    product.status === '판매중'
-                      ? 'bg-primary-50 text-primary border border-primary'
-                      : 'bg-gray-100 text-gray-600 border border-gray-300'
-                  }`}
-                >
-                  {product.status}
-                </span>
-                {/* 삼점 드롭다운 메뉴 (작성자만 표시) */}
-                {isAuthor && (
+                {/* 판매완료일 때만 배지 표시 (데스크탑에서만) */}
+                {product.status === '판매완료' && (
+                  <span className="hidden md:inline-block px-4 py-2 rounded-lg text-sm font-medium bg-primary text-white">
+                    판매완료
+                  </span>
+                )}
+                {/* 삼점 드롭다운 메뉴 (작성자 또는 관리자만 표시) */}
+                {canManagePost && (
                   <div className="relative dropdown-container">
                     <button
                       onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -397,23 +398,29 @@ export const ProductDetailPage = () => {
                     {/* 드롭다운 메뉴 */}
                     {isDropdownOpen && (
                       <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
-                        <button
-                          onClick={() => {
-                            setIsDropdownOpen(false);
-                            handleEdit();
-                          }}
-                          className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-t-lg transition-colors"
-                        >
-                          수정하기
-                        </button>
+                        {/* 수정하기는 작성자만 */}
+                        {isAuthor && (
+                          <button
+                            onClick={() => {
+                              setIsDropdownOpen(false);
+                              handleEdit();
+                            }}
+                            className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 rounded-t-lg transition-colors"
+                          >
+                            수정하기
+                          </button>
+                        )}
+                        {/* 삭제하기는 작성자 또는 관리자 */}
                         <button
                           onClick={() => {
                             setIsDropdownOpen(false);
                             handleDelete();
                           }}
-                          className="w-full px-4 py-3 text-left text-sm text-danger hover:bg-red-50 rounded-b-lg transition-colors"
+                          className={`w-full px-4 py-3 text-left text-sm text-danger hover:bg-red-50 transition-colors ${
+                            isAuthor ? 'rounded-b-lg' : 'rounded-lg'
+                          }`}
                         >
-                          삭제하기
+                          삭제하기 {isAdmin && !isAuthor && '(관리자)'}
                         </button>
                       </div>
                     )}
@@ -425,15 +432,26 @@ export const ProductDetailPage = () => {
             {/* 제목 */}
             <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">{product.title}</h1>
 
-            {/* 가격 */}
-            {product.price === 0 ? (
-              <div className="flex items-center gap-2 mb-6">
-                <p className="text-2xl md:text-3xl font-bold text-primary">나눔</p>
-                <img src={iconCarrot} alt="나눔" className="w-7 h-7" />
-              </div>
-            ) : (
-              <p className="text-2xl md:text-3xl font-bold text-primary mb-6">{product.price.toLocaleString()}원</p>
-            )}
+            {/* 가격 및 판매완료 배지 (모바일) */}
+            <div className="mb-6">
+              {product.price === 0 ? (
+                <div className="flex items-center gap-2">
+                  <p className="text-2xl md:text-3xl font-bold text-primary">나눔</p>
+                  <img src={iconCarrot} alt="나눔" className="w-7 h-7" />
+                </div>
+              ) : (
+                <p className="text-2xl md:text-3xl font-bold text-primary">{product.price.toLocaleString()}원</p>
+              )}
+
+              {/* 모바일에서만 표시되는 판매완료 배지 */}
+              {product.status === '판매완료' && (
+                <div className="md:hidden mt-2">
+                  <span className="inline-block px-3 py-1 rounded-lg text-sm font-medium bg-primary text-white">
+                    판매완료
+                  </span>
+                </div>
+              )}
+            </div>
 
             {/* 카테고리 및 등록일 */}
             <div className="mb-6">

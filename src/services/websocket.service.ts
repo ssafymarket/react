@@ -127,21 +127,28 @@ class WebSocketService {
   /**
    * 메시지 전송
    */
-  sendMessage(roomId: number, content: string, messageType: 'CHAT' | 'ENTER' = 'CHAT'): void {
+  sendMessage(roomId: number, content: string, messageType: 'CHAT' | 'ENTER' | 'IMAGE' = 'CHAT', imageUrl?: string): void {
     if (!this.connected || !this.client) {
       console.error('WebSocket 연결되지 않음');
       throw new Error('WebSocket이 연결되지 않았습니다.');
     }
+    console.log("messageType : " , messageType);
+    const payload: any = {
+      content: content,
+      messageType: messageType,
+    };
+
+    // IMAGE 타입인 경우 imageUrl 추가
+    if (messageType === 'IMAGE' && imageUrl) {
+      payload.imageUrl = imageUrl;
+    }
 
     this.client.publish({
       destination: `/app/chat/send/${roomId}`,
-      body: JSON.stringify({
-        content: content,
-        messageType: messageType,
-      }),
+      body: JSON.stringify(payload),
     });
 
-    console.log('💬 메시지 전송:', content);
+    console.log('💬 메시지 전송:', messageType === 'IMAGE' ? `이미지: ${imageUrl}` : content);
   }
 
   /**
