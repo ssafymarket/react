@@ -4,7 +4,7 @@ import { Layout } from '@/components/layout/Layout';
 import { ProductCard } from '@/components/products/ProductCard';
 import { ProductListItem } from '@/components/products/ProductListItem';
 import { Pagination } from '@/components/common/Pagination';
-import { getPosts, getPostsByCategory, searchPosts } from '@/api/post';
+import { getPosts, getPostsByCategory, searchPosts, getPostsByStatus } from '@/api/post';
 import { CATEGORIES, SORT_OPTIONS, PAGINATION } from '@/utils/constants';
 import type { Product } from '@/types/product';
 
@@ -24,6 +24,7 @@ export const HomePage = () => {
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [selectedSort, setSelectedSort] = useState('latest');
   const [searchKeyword, setSearchKeyword] = useState('');
+  const [showOnlySelling, setShowOnlySelling] = useState(false);
 
   const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
 
@@ -47,16 +48,37 @@ export const HomePage = () => {
       let response;
 
       if (searchKeyword) {
-        // 검색
+        // 검색 (판매중 필터 적용)
         console.log('검색 실행:', searchKeyword);
         response = await searchPosts(
           searchKeyword,
-          undefined,
+          showOnlySelling ? '판매중' : undefined,
           currentPage,
           PAGINATION.pageSize,
           selectedSort
         );
         console.log('검색 결과:', response);
+      } else if (showOnlySelling) {
+        // 판매중만 보기
+        response = await getPostsByStatus(
+          '판매중',
+          currentPage,
+          PAGINATION.pageSize,
+          selectedSort
+        );
+
+        // 카테고리 필터링 (클라이언트)
+        if (selectedCategory !== '전체') {
+          const filteredPosts = response.posts.filter(
+            (post: Product) => post.category === selectedCategory
+          );
+          response = {
+            ...response,
+            posts: filteredPosts,
+            totalItems: filteredPosts.length,
+            totalPages: Math.ceil(filteredPosts.length / PAGINATION.pageSize),
+          };
+        }
       } else if (selectedCategory === '전체') {
         // 전체 조회
         response = await getPosts(currentPage, PAGINATION.pageSize, selectedSort);
@@ -91,10 +113,10 @@ export const HomePage = () => {
     }
   };
 
-  // 카테고리, 정렬, 페이지 변경 시 재조회
+  // 카테고리, 정렬, 페이지, 판매중 필터 변경 시 재조회
   useEffect(() => {
     fetchProducts();
-  }, [selectedCategory, selectedSort, currentPage, searchKeyword]);
+  }, [selectedCategory, selectedSort, currentPage, searchKeyword, showOnlySelling]);
 
   // 카테고리 변경
   const handleCategoryChange = (category: string) => {
@@ -146,8 +168,22 @@ export const HomePage = () => {
           </div>
         )}
 
-        {/* 정렬 옵션 */}
-        <div className="flex justify-end mb-6">
+        {/* 필터 및 정렬 옵션 */}
+        <div className="flex justify-end items-center mb-6 gap-3">
+          <button
+            onClick={() => {
+              setShowOnlySelling(!showOnlySelling);
+              setCurrentPage(0);
+            }}
+            className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+              showOnlySelling
+                ? 'bg-primary text-white'
+                : 'border border-gray-300 text-gray-700 bg-white hover:bg-gray-50'
+            }`}
+          >
+            판매중만 보기
+          </button>
+
           <select
             value={selectedSort}
             onChange={(e) => handleSortChange(e.target.value)}
