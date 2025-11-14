@@ -30,9 +30,22 @@ export const Footer = () => {
             <h3 className="font-semibold text-gray-900 mb-4">만든이</h3>
             <Link
               to="/team"
-              className="text-sm text-gray-600 hover:text-primary transition-colors"
+              className="text-sm text-primary hover:text-primary transition-colors underline inline-flex items-center gap-1"
             >
               Team Arfni
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                />
+              </svg>
             </Link>
           </div>
         </div>
