@@ -117,6 +117,7 @@ export const SignupPage = () => {
             value={formData.name}
             onChange={handleChange}
             required
+            maxLength={30}
             className="w-full px-6 py-4 bg-[#E6EDF6] border-0 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary"
           />
 
@@ -129,6 +130,7 @@ export const SignupPage = () => {
             value={formData.className}
             onChange={handleChange}
             required
+            maxLength={3}
             className="w-full px-6 py-4 bg-[#E6EDF6] border-0 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary"
           />
 
@@ -141,6 +143,7 @@ export const SignupPage = () => {
             value={formData.password}
             onChange={handleChange}
             required
+            maxLength={30}
             className="w-full px-6 py-4 bg-[#E6EDF6] border-0 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary"
           />
 
@@ -153,6 +156,7 @@ export const SignupPage = () => {
             value={formData.passwordConfirm}
             onChange={handleChange}
             required
+            maxLength={30}
             className="w-full px-6 py-4 bg-[#E6EDF6] border-0 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary"
           />
 
