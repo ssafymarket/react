@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Layout } from '@/components/layout/Layout';
-import { getPendingUsers, approveUser } from '@/api/admin';
+import { getPendingUsers, approveUser, rejectUser } from '@/api/admin';
 import { useAuthStore } from '@/store/authStore';
 import logo from '@/assets/icon_logo.svg';
 
@@ -32,15 +32,29 @@ export const AdminPage = () => {
     },
   });
 
+  // 회원 거절 mutation
+  const rejectMutation = useMutation({
+    mutationFn: rejectUser,
+    onSuccess: () => {
+      alert('거절되었습니다.');
+      queryClient.invalidateQueries({ queryKey: ['pendingUsers'] });
+    },
+    onError: (error) => {
+      console.error('거절 실패:', error);
+      alert('거절에 실패했습니다.');
+    },
+  });
+
   const handleApprove = (studentId: string) => {
     if (confirm('승인하시겠습니까?')) {
       approveMutation.mutate(studentId);
     }
   };
 
-  const handleReject = () => {
-    // TODO: 거절 API가 필요하면 추가
-    alert('거절 기능은 아직 구현되지 않았습니다.');
+  const handleReject = (studentId: string) => {
+    if (confirm('거절하시겠습니까?')) {
+      rejectMutation.mutate(studentId);
+    }
   };
 
   return (
@@ -74,14 +88,15 @@ export const AdminPage = () => {
                 <div className="flex gap-2 md:gap-3 w-full md:w-auto">
                   <button
                     onClick={() => handleApprove(user.studentId)}
-                    disabled={isLoading || approveMutation.isPending}
+                    disabled={isLoading || approveMutation.isPending || rejectMutation.isPending}
                     className="flex-1 md:flex-initial px-4 md:px-8 py-2 md:py-3 bg-primary text-white rounded-full font-medium hover:bg-primary-600 transition-colors text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     승인
                   </button>
                   <button
-                    onClick={handleReject}
-                    className="flex-1 md:flex-initial px-4 md:px-8 py-2 md:py-3 bg-white border border-primary text-primary rounded-full font-medium hover:bg-primary-50 transition-colors text-sm md:text-base"
+                    onClick={() => handleReject(user.studentId)}
+                    disabled={isLoading || approveMutation.isPending || rejectMutation.isPending}
+                    className="flex-1 md:flex-initial px-4 md:px-8 py-2 md:py-3 bg-white border border-primary text-primary rounded-full font-medium hover:bg-primary-50 transition-colors text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     거절
                   </button>

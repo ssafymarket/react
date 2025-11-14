@@ -76,3 +76,9 @@ export type ApproveUserResponse = {
     role: 'ROLE_USER' | 'ROLE_ADMIN';
   };
 }
+
+// 회원 거절 응답
+export type RejectUserResponse = {
+  success: boolean;
+  message: string;
+}
