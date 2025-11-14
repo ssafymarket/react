@@ -56,7 +56,7 @@ export const AdminPage = () => {
                 className="flex flex-col md:flex-row items-start md:items-center justify-between bg-white rounded-2xl border border-gray-200 p-4 md:p-6 gap-3"
               >
                 <div className="text-base md:text-lg text-gray-900">
-                  {user.name}({user.studentId}) {user.class}
+                  {user.name}({user.studentId}) / {user.class}반
                 </div>
                 <div className="flex gap-2 md:gap-3 w-full md:w-auto">
                   <button

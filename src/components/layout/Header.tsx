@@ -99,7 +99,7 @@ export const Header = () => {
                     )}
                   </div>
 
-                  {/* 모바일: 채팅 아이콘 + 마이페이지 아이콘 */}
+                  {/* 모바일: 채팅 아이콘 + 마이페이지 아이콘 + 관리 버튼 */}
                   <div className="flex lg:hidden items-center gap-2">
                     {/* 채팅 버튼 */}
                     <Link to="/chat">
@@ -115,6 +115,15 @@ export const Header = () => {
                         <img src={iconPerson} alt="마이페이지" className="w-6 h-6" />
                       </button>
                     </Link>
+
+                    {/* 관리 버튼 (관리자만) */}
+                    {isAdmin && (
+                      <Link to="/admin">
+                        <button className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-sm font-medium">
+                          관리
+                        </button>
+                      </Link>
+                    )}
                   </div>
                 </>
               ) : (
