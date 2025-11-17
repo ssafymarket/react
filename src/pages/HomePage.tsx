@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
+import { SearchBar } from '@/components/layout/SearchBar';
 import { ProductCard } from '@/components/products/ProductCard';
 import { ProductListItem } from '@/components/products/ProductListItem';
 import { Pagination } from '@/components/common/Pagination';
@@ -19,24 +20,14 @@ export const HomePage = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
 
-  // 필터 상태 - URL 파라미터에서 초기값 가져오기
-  const [selectedCategory, setSelectedCategory] = useState('전체');
-  const [selectedSort, setSelectedSort] = useState('latest');
-  const [searchKeyword, setSearchKeyword] = useState('');
-  const [showOnlySelling, setShowOnlySelling] = useState(false);
-
-  // URL 파라미터에서 현재 페이지 가져오기
+  // URL 파라미터에서 모든 필터 상태 가져오기
   const currentPage = parseInt(searchParams.get('page') || '0', 10);
+  const selectedCategory = searchParams.get('category') || '전체';
+  const selectedSort = searchParams.get('sort') || 'latest';
+  const searchKeyword = searchParams.get('search') || '';
+  const showOnlySelling = searchParams.get('selling') === 'true';
 
   const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
-
-  // URL 파라미터에서 검색어 가져오기
-  useEffect(() => {
-    const keyword = searchParams.get('search');
-    if (keyword) {
-      setSearchKeyword(keyword);
-    }
-  }, [searchParams]);
 
   // 게시글 목록 조회
   const fetchProducts = async () => {
@@ -118,17 +109,51 @@ export const HomePage = () => {
 
   // 카테고리 변경
   const handleCategoryChange = (category: string) => {
-    setSelectedCategory(category);
-    setSearchKeyword(''); // 검색어 초기화
-    setSearchParams({}); // URL 파라미터 초기화 (페이지도 0으로)
+    const newParams = new URLSearchParams();
+
+    // 카테고리가 '전체'가 아닌 경우만 URL에 추가
+    if (category !== '전체') {
+      newParams.set('category', category);
+    }
+
+    // 정렬 옵션 유지
+    newParams.set('sort', selectedSort);
+
+    // 판매중 필터 유지
+    if (showOnlySelling) {
+      newParams.set('selling', 'true');
+    }
+
+    // 페이지는 0으로 리셋 (기본값이므로 URL에 추가하지 않음)
+    // 검색어는 초기화 (URL에 추가하지 않음)
+
+    setSearchParams(newParams);
   };
 
   // 정렬 변경
   const handleSortChange = (sort: string) => {
-    setSelectedSort(sort);
-    // 페이지를 0으로 리셋
-    const newParams = new URLSearchParams(searchParams);
-    newParams.delete('page');
+    const newParams = new URLSearchParams();
+
+    // 정렬 옵션 설정
+    newParams.set('sort', sort);
+
+    // 카테고리 유지
+    if (selectedCategory !== '전체') {
+      newParams.set('category', selectedCategory);
+    }
+
+    // 판매중 필터 유지
+    if (showOnlySelling) {
+      newParams.set('selling', 'true');
+    }
+
+    // 검색어 유지
+    if (searchKeyword) {
+      newParams.set('search', searchKeyword);
+    }
+
+    // 페이지는 0으로 리셋
+
     setSearchParams(newParams);
   };
 
@@ -155,6 +180,11 @@ export const HomePage = () => {
           <p className="text-sm md:text-base text-gray-600 mt-1">총 {totalItems.toLocaleString()}개의 상품</p>
         </div>
 
+        {/* 모바일 검색바 */}
+        <div className="lg:hidden mb-6 w-full">
+          <SearchBar />
+        </div>
+
         {/* 카테고리 탭 */}
         {!searchKeyword && (
           <div className="flex gap-2 md:gap-3 mb-6 overflow-x-auto pb-2 scrollbar-hide">
@@ -178,10 +208,28 @@ export const HomePage = () => {
         <div className="flex justify-end items-center mb-6 gap-3">
           <button
             onClick={() => {
-              setShowOnlySelling(!showOnlySelling);
-              // 페이지를 0으로 리셋
-              const newParams = new URLSearchParams(searchParams);
-              newParams.delete('page');
+              const newParams = new URLSearchParams();
+
+              // 정렬 옵션 유지
+              newParams.set('sort', selectedSort);
+
+              // 카테고리 유지
+              if (selectedCategory !== '전체') {
+                newParams.set('category', selectedCategory);
+              }
+
+              // 판매중 필터 토글
+              if (!showOnlySelling) {
+                newParams.set('selling', 'true');
+              }
+
+              // 검색어 유지
+              if (searchKeyword) {
+                newParams.set('search', searchKeyword);
+              }
+
+              // 페이지는 0으로 리셋
+
               setSearchParams(newParams);
             }}
             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${

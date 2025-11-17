@@ -27,7 +27,7 @@ export const SearchBar = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="w-full max-w-2xl">
+    <form onSubmit={handleSubmit} className="w-full">
       <div className="relative">
         {/* 돋보기 아이콘 */}
         <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
