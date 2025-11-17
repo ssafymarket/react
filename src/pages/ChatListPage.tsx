@@ -363,20 +363,6 @@ export const ChatListPage = () => {
       // 3. WebSocket으로 IMAGE 타입 메시지 전송
       websocketService.sendMessage(selectedRoom.roomId, fullImageUrl, 'IMAGE', fullImageUrl);
 
-      // 4. 낙관적 업데이트: 내가 보낸 이미지 메시지를 즉시 화면에 표시
-      const tempMessage: ChatMessage = {
-        messageId: Date.now(), // 임시 ID
-        roomId: selectedRoom.roomId,
-        senderId: user!.studentId,
-        sender: user!,
-        content: fullImageUrl,
-        sentAt: new Date().toISOString(),
-        isRead: false,
-        messageType: 'IMAGE',
-        imageUrl: fullImageUrl,
-      };
-      setMessages((prev) => [...prev, tempMessage]);
-
       // 파일 입력 초기화
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
