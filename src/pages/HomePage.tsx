@@ -16,15 +16,17 @@ export const HomePage = () => {
   const [error, setError] = useState('');
 
   // 페이지네이션 정보
-  const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
 
-  // 필터 상태
+  // 필터 상태 - URL 파라미터에서 초기값 가져오기
   const [selectedCategory, setSelectedCategory] = useState('전체');
   const [selectedSort, setSelectedSort] = useState('latest');
   const [searchKeyword, setSearchKeyword] = useState('');
   const [showOnlySelling, setShowOnlySelling] = useState(false);
+
+  // URL 파라미터에서 현재 페이지 가져오기
+  const currentPage = parseInt(searchParams.get('page') || '0', 10);
 
   const IMAGE_BASE_URL = import.meta.env.VITE_IMAGE_URL || '';
 
@@ -100,7 +102,6 @@ export const HomePage = () => {
       setProducts(postsWithFullUrls);
       setTotalPages(response.totalPages);
       setTotalItems(response.totalItems);
-      setCurrentPage(response.currentPage);
     } catch (err) {
       console.error('게시글 조회 실패:', err);
       setError('게시글을 불러오는데 실패했습니다.');
@@ -118,20 +119,28 @@ export const HomePage = () => {
   // 카테고리 변경
   const handleCategoryChange = (category: string) => {
     setSelectedCategory(category);
-    setCurrentPage(0); // 첫 페이지로 이동
     setSearchKeyword(''); // 검색어 초기화
-    setSearchParams({}); // URL 파라미터 초기화
+    setSearchParams({}); // URL 파라미터 초기화 (페이지도 0으로)
   };
 
   // 정렬 변경
   const handleSortChange = (sort: string) => {
     setSelectedSort(sort);
-    setCurrentPage(0);
+    // 페이지를 0으로 리셋
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete('page');
+    setSearchParams(newParams);
   };
 
   // 페이지 변경
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    const newParams = new URLSearchParams(searchParams);
+    if (page === 0) {
+      newParams.delete('page');
+    } else {
+      newParams.set('page', page.toString());
+    }
+    setSearchParams(newParams);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -170,7 +179,10 @@ export const HomePage = () => {
           <button
             onClick={() => {
               setShowOnlySelling(!showOnlySelling);
-              setCurrentPage(0);
+              // 페이지를 0으로 리셋
+              const newParams = new URLSearchParams(searchParams);
+              newParams.delete('page');
+              setSearchParams(newParams);
             }}
             className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
               showOnlySelling
