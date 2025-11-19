@@ -7,6 +7,7 @@ import { Pagination } from '@/components/common/Pagination';
 import { useAuthStore } from '@/store/authStore';
 import type { Transaction } from '@/types/product';
 import { getMyTransactions } from '@/api/post';
+import { formatTransactionDate } from '@/utils/dateFormatter';
 import { SORT_OPTIONS } from '@/utils/constants';
 
 export const MyTransactionsPage = () => {
@@ -233,7 +234,7 @@ export const MyTransactionsPage = () => {
                       </div>
                       <ProductListItem product={transaction.post} />
                       <div className="mt-3 text-xs text-gray-500">
-                        거래 완료: {new Date(transaction.completedAt).toLocaleDateString('ko-KR')}
+                        거래 완료: {formatTransactionDate(transaction.completedAt)}
                       </div>
                     </div>
                   ))}
@@ -257,7 +258,7 @@ export const MyTransactionsPage = () => {
                         {transaction.otherParty.name} ({transaction.otherParty.studentId})
                       </div>
                       <div className="text-xs text-gray-500 text-center">
-                        {new Date(transaction.completedAt).toLocaleDateString('ko-KR')}
+                        {formatTransactionDate(transaction.completedAt)}
                       </div>
                     </div>
                   ))}

@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore';
 import type { ProductDetail } from '@/types/product';
 import { getPostById, deletePost, addLike, removeLike, checkLikeStatus } from '@/api/post';
 import { createOrGetChatRoom } from '@/api/chat';
+import { formatRelativeTime } from '@/utils/dateFormatter';
 import iconHeart from '@/assets/icon_heart.svg';
 import iconHeartFilled from '@/assets/icon_heart_filled.svg';
 import iconChat from '@/assets/icon_chat.svg';
@@ -244,21 +245,6 @@ export const ProductDetailPage = () => {
     }
   };
 
-  // 날짜 포맷팅
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return '방금 전';
-    if (minutes < 60) return `${minutes}분 전`;
-    if (hours < 24) return `${hours}시간 전`;
-    if (days < 7) return `${days}일 전`;
-    return date.toLocaleDateString();
-  };
 
   // 작성자인지 확인
   const isAuthor = user?.studentId === product?.writer.studentId;
@@ -457,7 +443,7 @@ export const ProductDetailPage = () => {
             <div className="mb-6">
               <span className="text-sm text-gray-600">{product.category}</span>
               <span className="mx-2 text-gray-400">·</span>
-              <span className="text-sm text-gray-600">{formatDate(product.createdAt)}</span>
+              <span className="text-sm text-gray-600">{formatRelativeTime(product.createdAt)}</span>
             </div>
 
             {/* 상품 설명 */}

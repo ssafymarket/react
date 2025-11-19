@@ -11,6 +11,7 @@ import websocketService from '@/services/websocket.service';
 import { getChatRooms, getChatRoom, getMessages, leaveChatRoom, uploadChatImage } from '@/api/chat/chat.api';
 import { completeSale, getPostById } from '@/api/post';
 import type { ChatRoom, ChatMessage } from '@/types/chat';
+import { formatChatListTime, formatMessageTime as formatMessageTimeKST } from '@/utils/dateFormatter';
 import iconPicture from '@/assets/icon_picture.svg';
 import iconLogo from '@/assets/icon_logo.svg';
 
@@ -95,8 +96,11 @@ export const ChatListPage = () => {
 
     const roomId = Number(roomIdParam);
 
-    // 이미 선택된 방이 있고, 같은 방이면 리턴
-    if (selectedRoom && selectedRoom.roomId === roomId) return;
+    // 이미 선택된 방이 있고, 같은 방이면 URL만 클리어하고 리턴
+    if (selectedRoom && selectedRoom.roomId === roomId) {
+      navigate('/chat', { replace: true });
+      return;
+    }
 
     // 먼저 기존 목록에서 찾기 (이미 로드된 경우)
     const existingRoom = chatRooms.find((r) => r.roomId === roomId);
@@ -122,6 +126,8 @@ export const ChatListPage = () => {
         return;
       }
       setSelectedRoom(existingRoom);
+      // URL 파라미터 제거
+      navigate('/chat', { replace: true });
       return;
     }
 
@@ -161,6 +167,9 @@ export const ChatListPage = () => {
           new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime()
         );
         setMessages(sorted);
+
+        // URL 파라미터 제거
+        navigate('/chat', { replace: true });
       } catch (error) {
         console.error('채팅방 로드 실패:', error);
         // 모바일이면 목록 표시, 데스크탑이면 /chat으로
@@ -453,38 +462,15 @@ export const ChatListPage = () => {
     );
   });
 
-  // 시간 포맷팅
+  // 시간 포맷팅 (채팅 목록용)
   const formatTime = (dateString: string | null) => {
     if (!dateString) return '채팅을 시작해보세요';
 
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return '채팅을 시작해보세요';
-
-    const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const minutes = Math.floor(diff / 60000);
-    const hours = Math.floor(diff / 3600000);
-    const days = Math.floor(diff / 86400000);
-
-    if (minutes < 1) return '방금 전';
-    if (minutes < 60) return `${minutes}분 전`;
-    if (hours < 24) return `${hours}시간 전`;
-    if (days < 7) return `${days}일 전`;
-    return date.toLocaleDateString('ko-KR');
-  };
-
-  const formatMessageTime = (dateString: string) => {
-    // 서버에서 시간대 정보 없이 UTC 시간을 보냄
-    // 2025-11-11T17:06:03 형식은 'Z'가 없으면 로컬 시간으로 해석됨
-    // 따라서 명시적으로 'Z'를 붙여 UTC로 파싱한 후 한국 시간으로 변환
-    const utcString = dateString.endsWith('Z') ? dateString : dateString + 'Z';
-    const date = new Date(utcString);
-
-    const hours = date.getHours();
-    const minutes = date.getMinutes();
-    const ampm = hours >= 12 ? '오후' : '오전';
-    const displayHours = hours % 12 || 12;
-    return `${ampm} ${displayHours}:${minutes.toString().padStart(2, '0')}`;
+    try {
+      return formatChatListTime(dateString);
+    } catch {
+      return '채팅을 시작해보세요';
+    }
   };
 
   if (!isLoggedIn) return null;
@@ -746,7 +732,7 @@ export const ChatListPage = () => {
                                     )}
                                   </div>
                                   <p className={`text-xs text-gray-500 mt-1 ${isMe ? 'text-right' : ''}`}>
-                                    {formatMessageTime(message.sentAt)}
+                                    {formatMessageTimeKST(message.sentAt)}
                                   </p>
                                 </div>
                               </div>
