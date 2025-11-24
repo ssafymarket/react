@@ -1,10 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { getPendingUsers, approveUser, rejectUser } from '@/api/admin';
 import { useAuthStore } from '@/store/authStore';
 import logo from '@/assets/icon_logo.svg';
 
 export const AdminPage = () => {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { isLoggedIn, user } = useAuthStore();
 
@@ -57,6 +59,10 @@ export const AdminPage = () => {
     }
   };
 
+  const handleResetPassword = () => {
+    navigate('/admin/reset-password');
+  };
+
   return (
     <Layout>
       <div className="max-w-4xl mx-auto px-4 md:px-8 lg:px-20 py-12">
@@ -66,44 +72,58 @@ export const AdminPage = () => {
           <h1 className="text-3xl font-bold text-gray-900">관리자페이지</h1>
         </div>
 
-        {/* 승인 대기 목록 */}
-        <div className="space-y-6">
-          {isLoading ? (
-            <div className="text-center py-12 text-gray-500">
-              로딩 중...
-            </div>
-          ) : pendingUsers.length === 0 ? (
-            <div className="text-center py-12 text-gray-500">
-              승인 대기 중인 사용자가 없습니다.
-            </div>
-          ) : (
-            pendingUsers.map((user, index) => (
-              <div
-                key={`${user.studentId}-${index}`}
-                className="flex flex-col md:flex-row items-start md:items-center justify-between bg-white rounded-2xl border border-gray-200 p-4 md:p-6 gap-3"
-              >
-                <div className="text-base md:text-lg text-gray-900">
-                  {user.name}({user.studentId}) / {user.className}반
-                </div>
-                <div className="flex gap-2 md:gap-3 w-full md:w-auto">
-                  <button
-                    onClick={() => handleApprove(user.studentId)}
-                    disabled={isLoading || approveMutation.isPending || rejectMutation.isPending}
-                    className="flex-1 md:flex-initial px-4 md:px-8 py-2 md:py-3 bg-primary text-white rounded-full font-medium hover:bg-primary-600 transition-colors text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    승인
-                  </button>
-                  <button
-                    onClick={() => handleReject(user.studentId)}
-                    disabled={isLoading || approveMutation.isPending || rejectMutation.isPending}
-                    className="flex-1 md:flex-initial px-4 md:px-8 py-2 md:py-3 bg-white border border-primary text-primary rounded-full font-medium hover:bg-primary-50 transition-colors text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    거절
-                  </button>
-                </div>
+        {/* 가입 신청 목록 섹션 */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-6 md:p-8">
+          {/* 섹션 헤더 */}
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-xl font-bold text-gray-900">가입 신청 목록</h2>
+            <button
+              onClick={handleResetPassword}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+            >
+              회원 비밀번호 초기화
+            </button>
+          </div>
+
+          {/* 승인 대기 목록 */}
+          <div className="space-y-6">
+            {isLoading ? (
+              <div className="text-center py-12 text-gray-500">
+                로딩 중...
               </div>
-            ))
-          )}
+            ) : pendingUsers.length === 0 ? (
+              <div className="text-center py-12 text-gray-500">
+                승인 대기 중인 사용자가 없습니다.
+              </div>
+            ) : (
+              pendingUsers.map((user, index) => (
+                <div
+                  key={`${user.studentId}-${index}`}
+                  className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 rounded-xl border border-gray-200 p-4 md:p-6 gap-3"
+                >
+                  <div className="text-base md:text-lg text-gray-900">
+                    {user.name}({user.studentId}) / {user.className}반
+                  </div>
+                  <div className="flex gap-2 md:gap-3 w-full md:w-auto">
+                    <button
+                      onClick={() => handleApprove(user.studentId)}
+                      disabled={isLoading || approveMutation.isPending || rejectMutation.isPending}
+                      className="flex-1 md:flex-initial px-4 md:px-8 py-2 md:py-3 bg-primary text-white rounded-full font-medium hover:bg-primary-600 transition-colors text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      승인
+                    </button>
+                    <button
+                      onClick={() => handleReject(user.studentId)}
+                      disabled={isLoading || approveMutation.isPending || rejectMutation.isPending}
+                      className="flex-1 md:flex-initial px-4 md:px-8 py-2 md:py-3 bg-white border border-primary text-primary rounded-full font-medium hover:bg-primary-50 transition-colors text-sm md:text-base disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      거절
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
     </Layout>

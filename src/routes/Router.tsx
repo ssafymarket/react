@@ -6,11 +6,13 @@ import { SignupCompletePage } from '@/pages/SignupCompletePage';
 import { ProductDetailPage } from '@/pages/ProductDetailPage';
 import { ProductNewPage } from '@/pages/ProductNewPage';
 import { MyPage } from '@/pages/MyPage';
+import { EditProfilePage } from '@/pages/EditProfilePage';
 import { MySellingPage } from '@/pages/MySellingPage';
 import { MyLikedPage } from '@/pages/MyLikedPage';
 import { MyTransactionsPage } from '@/pages/MyTransactionsPage';
 import { ChatListPage } from '@/pages/ChatListPage';
 import { AdminPage } from '@/pages/AdminPage';
+import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { TeamPage } from '@/pages/TeamPage';
 import { PrivateRoute } from './PrivateRoute';
 import { AdminRoute } from './AdminRoute';
@@ -33,6 +35,7 @@ export const Router = () => {
 
         {/* Private Routes */}
         <Route path="/mypage" element={<PrivateRoute><MyPage /></PrivateRoute>} />
+        <Route path="/my/edit" element={<PrivateRoute><EditProfilePage /></PrivateRoute>} />
         <Route path="/my/selling" element={<PrivateRoute><MySellingPage /></PrivateRoute>} />
         <Route path="/my/liked" element={<PrivateRoute><MyLikedPage /></PrivateRoute>} />
         <Route path="/my/transactions" element={<PrivateRoute><MyTransactionsPage /></PrivateRoute>} />
@@ -40,6 +43,7 @@ export const Router = () => {
 
         {/* Admin Routes */}
         <Route path="/admin" element={<AdminRoute><AdminPage /></AdminRoute>} />
+        <Route path="/admin/reset-password" element={<AdminRoute><ResetPasswordPage /></AdminRoute>} />
       </Routes>
     </BrowserRouter>
   );

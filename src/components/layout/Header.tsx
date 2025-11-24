@@ -69,7 +69,7 @@ export const Header = () => {
                     {/* 글쓰기 버튼 */}
                     <Link to="/products/new">
                       <Button variant="primary" size="md" className="flex items-center gap-2">
-                        <img src={iconPen} alt="" className="w-5 h-5" />
+                        <img src={iconPen} alt="" className="w-5 h-5 brightness-0 invert" />
                         글쓰기
                       </Button>
                     </Link>

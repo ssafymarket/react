@@ -1,5 +1,5 @@
 import client from '../client';
-import type { PendingUsersResponse, ApproveUserResponse, RejectUserResponse } from '@/types/user';
+import type { PendingUsersResponse, ApproveUserResponse, RejectUserResponse, ResetPasswordRequest, ResetPasswordResponse } from '@/types/user';
 
 /**
  * 회원 승인 목록 조회
@@ -22,5 +22,13 @@ export const approveUser = async (studentId: string): Promise<ApproveUserRespons
  */
 export const rejectUser = async (studentId: string): Promise<RejectUserResponse> => {
   const response = await client.delete<RejectUserResponse>(`/admin/users/${studentId}/reject`);
+  return response.data;
+};
+
+/**
+ * 회원 비밀번호 초기화
+ */
+export const resetUserPassword = async (data: ResetPasswordRequest): Promise<ResetPasswordResponse> => {
+  const response = await client.post<ResetPasswordResponse>('/auth/password/find', data);
   return response.data;
 };

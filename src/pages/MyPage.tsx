@@ -8,6 +8,7 @@ import { getMySellingPosts, getMyTransactions, getLikedPosts } from '@/api/post'
 import { logout as logoutApi, getMe } from '@/api/auth';
 import iconLogout from '@/assets/icon_logout.svg';
 import iconCarrot from '@/assets/icon_carrot.svg';
+import iconPen from '@/assets/icon_pen.svg';
 
 export const MyPage = () => {
   const navigate = useNavigate();
@@ -122,13 +123,22 @@ export const MyPage = () => {
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-gray-900">마이페이지</h1>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
-          >
-            <img src={iconLogout} alt="" className="w-5 h-5" />
-            로그아웃
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate('/my/edit')}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+            >
+              <img src={iconPen} alt="" className="w-5 h-5" />
+              회원정보 수정
+            </button>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+            >
+              <img src={iconLogout} alt="" className="w-5 h-5" />
+              로그아웃
+            </button>
+          </div>
         </div>
 
         <main>

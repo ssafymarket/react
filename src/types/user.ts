@@ -82,3 +82,16 @@ export type RejectUserResponse = {
   success: boolean;
   message: string;
 }
+
+// 회원 비밀번호 초기화 요청
+export type ResetPasswordRequest = {
+  studentId: string;
+  name: string;
+  className: string;
+}
+
+// 회원 비밀번호 초기화 응답
+export type ResetPasswordResponse = {
+  success: boolean;
+  message: string;
+}

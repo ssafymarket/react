@@ -20,7 +20,6 @@ client.interceptors.response.use(
   (response) => response,
   (error) => {
     const now = Date.now();
-    const errorMessage = error.response?.data?.message || error.message;
     // 401 Unauthorized - 세션 만료 또는 인증 필요
     if (error.response?.status === 401) {
       // 로그인 페이지가 아닌 경우에만 리다이렉트
