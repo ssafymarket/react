@@ -12,8 +12,7 @@ export const toKST = (dateString: string): Date => {
   const utcDate = new Date(utcString);
 
   // KST = UTC + 9시간
-  const kstOffset = 9 * 60 * 60 * 1000; // 9시간을 밀리초로
-  return new Date(utcDate.getTime() + kstOffset);
+  return new Date(utcDate.getTime());
 };
 
 /**
@@ -100,6 +99,44 @@ export const formatTransactionDate = (dateString: string): string => {
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
   const day = date.getDate();
+
+  return `${year}년 ${month}월 ${day}일`;
+};
+
+/**
+ * 두 날짜가 같은 날인지 확인
+ */
+export const isSameDay = (date1: string, date2: string): boolean => {
+  const d1 = toKST(date1);
+  const d2 = toKST(date2);
+
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
+};
+
+/**
+ * 채팅 날짜 구분선용 포맷 (예: "2025년 11월 24일", "오늘", "어제")
+ */
+export const formatChatDateSeparator = (dateString: string): string => {
+  const date = toKST(dateString);
+  const now = new Date();
+
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+
+  // 오늘 날짜
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const messageDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+  const diffTime = today.getTime() - messageDate.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return '오늘';
+  if (diffDays === 1) return '어제';
 
   return `${year}년 ${month}월 ${day}일`;
 };

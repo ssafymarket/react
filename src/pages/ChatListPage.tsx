@@ -11,7 +11,7 @@ import websocketService from '@/services/websocket.service';
 import { getChatRooms, getChatRoom, getMessages, leaveChatRoom, uploadChatImage } from '@/api/chat/chat.api';
 import { completeSale, getPostById } from '@/api/post';
 import type { ChatRoom, ChatMessage } from '@/types/chat';
-import { formatChatListTime, formatMessageTime as formatMessageTimeKST } from '@/utils/dateFormatter';
+import { formatRelativeTime, formatMessageTime, isSameDay, formatChatDateSeparator } from '@/utils/dateFormatter';
 import iconPicture from '@/assets/icon_picture.svg';
 import iconLogo from '@/assets/icon_logo.svg';
 
@@ -467,7 +467,7 @@ export const ChatListPage = () => {
     if (!dateString) return '채팅을 시작해보세요';
 
     try {
-      return formatChatListTime(dateString);
+      return formatRelativeTime(dateString);
     } catch {
       return '채팅을 시작해보세요';
     }
@@ -690,50 +690,65 @@ export const ChatListPage = () => {
                     <div className="flex flex-col gap-3">
                       {messages
                         .filter((message) => !message.messageType || message.messageType === 'CHAT' || message.messageType === 'IMAGE')
-                        .map((message) => {
+                        .map((message, index, filteredMessages) => {
                           const isMe = message.senderId === user?.studentId;
                           const otherUser = selectedRoom.iAmBuyer ? selectedRoom.seller : selectedRoom.buyer;
                           const isImageMessage = message.messageType === 'IMAGE';
 
+                          // 날짜 구분선 표시 여부 확인
+                          const showDateSeparator = index === 0 || !isSameDay(
+                            filteredMessages[index - 1].sentAt,
+                            message.sentAt
+                          );
+
                           return (
-                            <div
-                              key={message.messageId}
-                              className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
-                            >
-                              <div className={`flex items-start gap-2 max-w-[70%] ${isMe ? 'flex-row-reverse' : ''}`}>
-                                {!isMe && (
-                                  <UserProfile
-                                    user={otherUser}
-                                    size="sm"
-                                    showInfo={false}
-                                  />
-                                )}
-                                <div>
-                                  <div
-                                    className={`${
-                                      isImageMessage
-                                        ? 'rounded-2xl overflow-hidden'
-                                        : `px-4 py-2 rounded-2xl ${
-                                            isMe
-                                              ? 'bg-primary text-white rounded-tr-none'
-                                              : 'bg-gray-100 text-gray-900 rounded-tl-none'
-                                          }`
-                                    }`}
-                                  >
-                                    {isImageMessage ? (
-                                      <img
-                                        src={message.imageUrl?.startsWith('http') ? message.imageUrl : `${IMAGE_BASE_URL}${message.imageUrl}`}
-                                        alt="전송된 이미지"
-                                        className="max-w-full max-h-80 rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
-                                        onClick={() => window.open(message.imageUrl?.startsWith('http') ? message.imageUrl : `${IMAGE_BASE_URL}${message.imageUrl}`, '_blank')}
-                                      />
-                                    ) : (
-                                      <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
-                                    )}
+                            <div key={message.messageId}>
+                              {/* 날짜 구분선 */}
+                              {showDateSeparator && (
+                                <div className="flex items-center justify-center my-4">
+                                  <div className="px-4 py-1.5 bg-gray-200 text-gray-600 text-xs rounded-full">
+                                    {formatChatDateSeparator(message.sentAt)}
                                   </div>
-                                  <p className={`text-xs text-gray-500 mt-1 ${isMe ? 'text-right' : ''}`}>
-                                    {formatMessageTimeKST(message.sentAt)}
-                                  </p>
+                                </div>
+                              )}
+
+                              {/* 메시지 */}
+                              <div className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`flex items-start gap-2 max-w-[70%] ${isMe ? 'flex-row-reverse' : ''}`}>
+                                  {!isMe && (
+                                    <UserProfile
+                                      user={otherUser}
+                                      size="sm"
+                                      showInfo={false}
+                                    />
+                                  )}
+                                  <div>
+                                    <div
+                                      className={`${
+                                        isImageMessage
+                                          ? 'rounded-2xl overflow-hidden'
+                                          : `px-4 py-2 rounded-2xl ${
+                                              isMe
+                                                ? 'bg-primary text-white rounded-tr-none'
+                                                : 'bg-gray-100 text-gray-900 rounded-tl-none'
+                                            }`
+                                      }`}
+                                    >
+                                      {isImageMessage ? (
+                                        <img
+                                          src={message.imageUrl?.startsWith('http') ? message.imageUrl : `${IMAGE_BASE_URL}${message.imageUrl}`}
+                                          alt="전송된 이미지"
+                                          className="max-w-full max-h-80 rounded-2xl cursor-pointer hover:opacity-90 transition-opacity"
+                                          onClick={() => window.open(message.imageUrl?.startsWith('http') ? message.imageUrl : `${IMAGE_BASE_URL}${message.imageUrl}`, '_blank')}
+                                        />
+                                      ) : (
+                                        <p className="text-sm whitespace-pre-wrap break-words">{message.content}</p>
+                                      )}
+                                    </div>
+                                    <p className={`text-xs text-gray-500 mt-1 ${isMe ? 'text-right' : ''}`}>
+                                      {formatMessageTime(message.sentAt)}
+                                    </p>
+                                  </div>
                                 </div>
                               </div>
                             </div>
