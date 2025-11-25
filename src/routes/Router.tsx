@@ -16,10 +16,12 @@ import { ResetPasswordPage } from '@/pages/ResetPasswordPage';
 import { TeamPage } from '@/pages/TeamPage';
 import { PrivateRoute } from './PrivateRoute';
 import { AdminRoute } from './AdminRoute';
+import { ScrollToTop } from '@/components/common/ScrollToTop';
 
 export const Router = () => {
   return (
     <BrowserRouter>
+      <ScrollToTop />
       <Routes>
         {/* Public Routes */}
         <Route path="/" element={<HomePage />} />

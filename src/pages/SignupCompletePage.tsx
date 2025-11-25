@@ -34,7 +34,7 @@ export const SignupCompletePage = () => {
     
           </p>
           <span className="text-lg text-gray-600">
-            문의사항은 각 반 반장 및 CA에게 문의해주세요.
+            문의사항은 각 반 자치회에게 문의해주세요.
           </span>
 
 

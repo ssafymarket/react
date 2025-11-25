@@ -564,7 +564,7 @@ export const ChatListPage = () => {
             {selectedRoom ? (
               <>
                 {/* 채팅 헤더 */}
-                <header className="p-4 border-b border-gray-200 flex items-center justify-between">
+                <header className="p-2 md:p-4 border-b border-gray-200 flex items-center justify-between">
                   {/* 모바일: 뒤로가기 버튼 */}
                   <button
                     onClick={handleBackToList}
@@ -585,8 +585,8 @@ export const ChatListPage = () => {
                     </svg>
                   </button>
 
-                  <div className="flex items-center gap-3 flex-1">
-                    <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
+                  <div className="flex items-center gap-1.5 md:gap-3 flex-1 min-w-0">
+                    <div className="w-8 h-8 md:w-10 md:h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                       {selectedRoom.postImage ? (
                         <img
                           src={selectedRoom.postImage.startsWith('http') ? selectedRoom.postImage : `${IMAGE_BASE_URL}${selectedRoom.postImage}`}
@@ -602,20 +602,22 @@ export const ChatListPage = () => {
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-gray-900 text-sm truncate">
+                      <p className="font-medium text-gray-900 text-xs md:text-sm truncate">
                         {selectedRoom.buyer.studentId === user?.studentId ? selectedRoom.seller.name : selectedRoom.buyer.name}
-                        ({selectedRoom.buyer.studentId === user?.studentId ? selectedRoom.seller.studentId : selectedRoom.buyer.studentId})
+                        <span className="hidden md:inline">
+                          ({selectedRoom.buyer.studentId === user?.studentId ? selectedRoom.seller.studentId : selectedRoom.buyer.studentId})
+                        </span>
                       </p>
-                      <p className="text-xs text-gray-600 truncate">{selectedRoom.postTitle}</p>
+                      <p className="text-[11px] md:text-xs text-gray-600 truncate">{selectedRoom.postTitle}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 md:gap-2">
                     {user?.studentId === selectedRoom.sellerId ? (
                       <>
                         <button
                           onClick={handleCompleteSale}
                           disabled={isLoadingPostStatus || postStatus === '판매완료'}
-                          className={`px-2 py-2 w-[100px] rounded-lg text-sm font-medium transition-colors ${
+                          className={`px-2 py-2 w-[70px] md:w-[100px] rounded-lg text-xs md:text-sm font-medium transition-colors ${
                             isLoadingPostStatus || postStatus === '판매완료'
                               ? 'bg-gray-200 text-gray-400 cursor-default'
                               : 'bg-primary text-white hover:bg-primary-600'
@@ -650,7 +652,7 @@ export const ChatListPage = () => {
                         </button>
                         <button
                           onClick={handleLeaveChatRoom}
-                          className="px-2 py-2 w-[80px] rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                          className="px-2 py-2 w-[60px] md:w-[80px] rounded-lg text-xs md:text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
                         >
                           나가기
                         </button>
@@ -658,7 +660,7 @@ export const ChatListPage = () => {
                     ) : (
                       <button
                         onClick={handleLeaveChatRoom}
-                        className="px-2 py-2 w-[80px] rounded-lg text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                        className="px-2 py-2 w-[60px] md:w-[80px] rounded-lg text-xs md:text-sm font-medium border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
                       >
                         나가기
                       </button>
@@ -760,8 +762,8 @@ export const ChatListPage = () => {
                 </div>
 
                 {/* 입력 영역 */}
-                <footer className="p-4 border-t border-gray-200 bg-white">
-                  <div className="flex items-center gap-2">
+                <footer className="p-2 md:p-4 border-t border-gray-200 bg-white">
+                  <div className="flex items-center gap-1 md:gap-2">
                     <input
                       ref={fileInputRef}
                       type="file"
@@ -772,9 +774,9 @@ export const ChatListPage = () => {
                     <button
                       onClick={handleImageButtonClick}
                       disabled={!connected || isUploadingImage}
-                      className="p-2 text-primary hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-1.5 md:p-2 text-primary hover:bg-primary-50 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                     >
-                      <img src={iconPicture} alt="이미지" className="w-5 h-5" />
+                      <img src={iconPicture} alt="이미지" className="w-4 h-4 md:w-5 md:h-5" />
                     </button>
                     <input
                       type="text"
@@ -783,12 +785,12 @@ export const ChatListPage = () => {
                       onChange={(e) => setMessageInput(e.target.value)}
                       onKeyPress={(e) => e.key === 'Enter' && !e.shiftKey && handleSendMessage()}
                       disabled={!connected}
-                      className="flex-1 px-4 py-2.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
+                      className="flex-1 min-w-0 px-3 md:px-4 py-2 md:py-2.5 border border-gray-300 rounded-full text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
                     />
                     <button
                       onClick={handleSendMessage}
                       disabled={!connected || !messageInput.trim()}
-                      className="px-5 py-2.5 bg-primary text-white rounded-full font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="px-3 md:px-5 py-2 md:py-2.5 bg-primary text-white rounded-full text-sm md:text-base font-medium hover:bg-primary-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                     >
                       {isUploadingImage ? '전송 중...' : '전송'}
                     </button>
