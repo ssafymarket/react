@@ -122,21 +122,23 @@ export const MyPage = () => {
       <div className="max-w-7xl mx-auto px-4 md:px-20 py-8">
         {/* 헤더 */}
         <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">마이페이지</h1>
-          <div className="flex items-center gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">마이페이지</h1>
+          <div className="flex items-center gap-1 md:gap-2">
             <button
               onClick={() => navigate('/my/edit')}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1.5 md:py-2 bg-gray-100 text-gray-700 rounded-xl text-xs md:text-base font-medium hover:bg-gray-200 transition-colors"
             >
-              <img src={iconPen} alt="" className="w-5 h-5" />
-              회원정보 수정
+              <img src={iconPen} alt="" className="w-4 h-4 md:w-5 md:h-5" />
+              <span className="hidden sm:inline">회원정보 수정</span>
+              <span className="sm:hidden">정보 수정</span>
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors"
+              className="flex items-center gap-1 md:gap-2 px-2 md:px-4 py-1.5 md:py-2 bg-gray-100 text-gray-700 rounded-xl text-xs md:text-base font-medium hover:bg-gray-200 transition-colors"
             >
-              <img src={iconLogout} alt="" className="w-5 h-5" />
-              로그아웃
+              <img src={iconLogout} alt="" className="w-4 h-4 md:w-5 md:h-5" />
+              <span className="hidden sm:inline">로그아웃</span>
+              <span className="sm:hidden">로그아웃</span>
             </button>
           </div>
         </div>
