@@ -77,7 +77,7 @@ export const EditProfilePage = () => {
     }
 
     // 변경사항이 없는 경우
-    if (formData.name === user?.name && !formData.password) {
+    if (!formData.password) {
       setError('변경된 정보가 없습니다.');
       return;
     }
@@ -140,21 +140,18 @@ export const EditProfilePage = () => {
             />
           </div>
 
-          {/* 이름 */}
+          {/* 이름 (읽기 전용) */}
           <div className="mb-6">
             <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
-              이름 <span className="text-danger">*</span>
+              이름
             </label>
             <input
               type="text"
               id="name"
               name="name"
               value={formData.name}
-              onChange={handleChange}
-              required
-              maxLength={30}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
-              placeholder="이름을 입력하세요"
+              disabled
+              className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 text-gray-500 cursor-not-allowed"
             />
           </div>
 

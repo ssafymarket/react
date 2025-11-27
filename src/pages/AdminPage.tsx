@@ -63,6 +63,18 @@ export const AdminPage = () => {
     navigate('/admin/reset-password');
   };
 
+  // 캠퍼스 영어 -> 한글 변환
+  const getCampusKorean = (campus: string): string => {
+    const campusMap: { [key: string]: string } = {
+      'SEOUL': '서울',
+      'DAEJEON': '대전',
+      'GWANGJU': '광주',
+      'GUMI': '구미',
+      'BUULGYEONG': '부울경'
+    };
+    return campusMap[campus] || campus;
+  };
+
   return (
     <Layout>
       <div className="max-w-4xl mx-auto px-4 md:px-8 lg:px-20 py-12">
@@ -102,7 +114,7 @@ export const AdminPage = () => {
                   className="flex flex-col md:flex-row items-start md:items-center justify-between bg-gray-50 rounded-xl border border-gray-200 p-4 md:p-6 gap-3"
                 >
                   <div className="text-base md:text-lg text-gray-900">
-                    {user.name}({user.studentId}) / {user.className}반
+                    {user.name}({user.studentId}) / {getCampusKorean(user.campus)} {user.className}반
                   </div>
                   <div className="flex gap-2 md:gap-3 w-full md:w-auto">
                     <button

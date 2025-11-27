@@ -26,6 +26,7 @@ export type SignupRequest = {
   studentId: string;
   name: string;
   className: string;  // class → className으로 변경
+  campus: string;
   password: string;
 }
 
@@ -50,6 +51,7 @@ export type PendingUser = {
   studentId: string;
   name: string;
   className: string;
+  campus: string;
   password: string;
   approve: number;  // 0: 대기, 1: 승인
 }
