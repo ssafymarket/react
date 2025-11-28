@@ -35,7 +35,7 @@ client.interceptors.response.use(
 
     // 403 Forbidden - 권한 없음
     if (error.response?.status === 403) {
-      showToast.error('로그인을 다시 해주세요.');
+      showToast.error('로그인을 해주세요.');
       // 세션 클리어
       localStorage.removeItem('auth-storage');
       localStorage.removeItem('isLoggedIn');

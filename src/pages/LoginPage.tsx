@@ -66,7 +66,7 @@ export const LoginPage = () => {
         {/* 로고 */}
         <div className="flex items-center gap-2 mb-16">
           <img src={logo} alt="싸피마켓" className="h-10" />
-          <span className="text-2xl font-bold text-gray-900">싸피마켓</span>
+          <span className="text-3xl font-bold text-gray-900">싸피마켓</span>
         </div>
 
         {/* 로그인 폼 */}
